@@ -164,19 +164,19 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                 asset={selectedAssetForQR}
             />
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-background p-1 rounded-lg">
+            <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
                 <div className="flex flex-1 gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 items-center">
                     <div className="relative flex-1 max-w-sm min-w-[200px]">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                         <Input
                             placeholder="Search assets..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-10 bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="pl-9 h-10 text-sm"
                         />
                     </div>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[180px] h-10 bg-background text-sm">
+                        <SelectTrigger className="w-[180px] h-10 text-sm">
                             <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
@@ -188,7 +188,7 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                         </SelectContent>
                     </Select>
                     <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                        <SelectTrigger className="w-[180px] h-10 bg-background text-sm">
+                        <SelectTrigger className="w-[180px] h-10 text-sm">
                             <Package className="w-4 h-4 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Category" />
                         </SelectTrigger>
@@ -200,12 +200,12 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <Button variant="outline" size="sm" className="text-sm h-10" onClick={handleExportCSV}>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                    <Button variant="outline" size="sm" onClick={handleExportCSV}>
                         <FileBarChart size={16} className="mr-2" />
                         Export
                     </Button>
-                    <Button variant={showArchived ? "default" : "outline"} size="sm" className="text-sm h-10 w-[160px] justify-start" onClick={() => setShowArchived(!showArchived)}>
+                    <Button variant={showArchived ? "default" : "outline"} size="sm" onClick={() => setShowArchived(!showArchived)}>
                         {showArchived ? <><RotateCcw size={16} className="mr-2" />Show Active ({assets.filter(a => a.status !== "Archived").length})</> : <><Archive size={16} className="mr-2" />Show Archive ({assets.filter(a => a.status === "Archived").length})</>}
                     </Button>
                 </div>

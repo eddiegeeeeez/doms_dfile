@@ -64,19 +64,19 @@ export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, 
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-background p-1 rounded-lg">
+            <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
                 <div className="flex flex-1 gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 items-center">
                     <div className="relative flex-1 max-w-sm min-w-[200px]">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                         <Input
                             placeholder="Search employees..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-10 bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="pl-9 h-10 text-sm"
                         />
                     </div>
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
-                        <SelectTrigger className="w-[180px] h-10 bg-background text-sm">
+                        <SelectTrigger className="w-[180px] h-10 text-sm">
                             <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Filter Role" />
                         </SelectTrigger>
@@ -89,12 +89,12 @@ export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, 
                     </Select>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <Button variant="outline" onClick={onAddPersonnel} size="sm" className="h-10 text-sm border-dashed border-border hover:border-primary/50 hover:bg-primary/5">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                    <Button variant="outline" onClick={onAddPersonnel} size="sm">
                         <Plus size={16} className="mr-2" />
                         Register Personnel
                     </Button>
-                    <Button onClick={onOpenModal} size="sm" className="h-10 text-sm bg-primary text-primary-foreground shadow-sm">
+                    <Button onClick={onOpenModal} size="sm">
                         <Shield size={16} className="mr-2" />
                         Deploy Role
                     </Button>

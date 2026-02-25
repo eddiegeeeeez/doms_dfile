@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface LoginFormProps extends React.ComponentProps<"div"> {
   onLogin?: (email: string, password: string) => Promise<void>;
@@ -111,14 +112,18 @@ export function LoginForm({ className, onLogin, ...props }: LoginFormProps) {
         </div>
 
         {error && (
-          <div className="text-red-500 text-sm font-medium text-center">{error}</div>
+          <Alert variant="destructive" className="border-destructive/50 bg-destructive/5">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         {/* Actions */}
-        <div className="pt-4">
+        <div className="pt-4 space-y-4">
           <Button
             type="submit"
-            className="w-full h-12  bg-gradient-to-r from-[#182350] to-[#243575] text-white hover:to-[#182350] hover:shadow-lg hover:-translate-y-0.5 font-bold tracking-wide shadow-md shadow-[#182350]/20 transition-all duration-300 active:scale-[0.98]"
+            size="lg"
+            className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold tracking-wide shadow-md shadow-primary/20 transition-all duration-300"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -127,11 +132,11 @@ export function LoginForm({ className, onLogin, ...props }: LoginFormProps) {
                 Signing in...
               </span>
             ) : (
-              "Login"
+              "Sign In"
             )}
           </Button>
 
-          <p className="mt-6 text-center text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500">
+          <p className="text-center text-xs font-medium text-muted-foreground">
             Protected by DFile Security
           </p>
         </div>

@@ -99,19 +99,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Link
                 href={item.href}
                 onClick={() => setIsMobileSidebarOpen(false)}
-                className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left group
+                className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 group
                 ${isActive ? activeClasses : inactiveClasses}
                 ${isSubItem ? "py-2 px-3" : ""}
                 ${isCollapsed ? "justify-center px-2" : ""}`}
                 title={isCollapsed ? item.label : undefined}
             >
-                <div className={`shrink-0 grid place-items-center rounded-md
+                <div className={`shrink-0 grid place-items-center rounded-md transition-all duration-200
                 ${isActive ? "bg-white/20 border border-white/20" : "bg-muted/50 border border-border group-hover:bg-muted group-hover:border-primary/20"}
                 ${isSubItem ? "h-6 w-6" : "h-9 w-9"}`}>
-                    <item.icon size={isSubItem ? 13 : 18} className={isActive ? "stroke-primary-foreground" : "stroke-muted-foreground group-hover:stroke-foreground"} />
+                    <item.icon size={isSubItem ? 13 : 18} className={`transition-colors duration-200 ${isActive ? "stroke-primary-foreground" : "stroke-muted-foreground group-hover:stroke-foreground"}`} />
                 </div>
                 {!isCollapsed && (
-                    <span className={`tracking-tight leading-snug flex-1 ${isSubItem ? "text-xs" : "text-sm"}`}>
+                    <span className={`tracking-tight leading-snug flex-1 transition-colors duration-200 ${isSubItem ? "text-xs" : "text-sm"}`}>
                         {item.label}
                     </span>
                 )}
@@ -271,32 +271,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             {/* Main Content */}
             <main className={`flex-1 min-w-0 bg-background min-h-screen transition-all duration-300 ${isCollapsed ? "lg:ml-20" : "lg:ml-72"}`}>
-                <header className="h-14 bg-card border-b border-border !px-3 sm:!px-6 flex items-center justify-between sticky top-0 z-10 w-full">
+                <header className="h-14 bg-card border-b border-border px-3 sm:px-6 flex items-center justify-between sticky top-0 z-10 w-full shadow-sm">
                     <button
                         onClick={() => setIsMobileSidebarOpen(true)}
-                        className="lg:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors mr-2"
+                        className="lg:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 mr-2"
+                        aria-label="Toggle sidebar"
                     >
                         <Menu size={20} />
                     </button>
 
-                    <div className="flex-1 max-w-md hidden sm:block">
-                        {/* Search removed */}
-                    </div>
+                    <div className="flex-1" />
 
-                    <div className="flex items-center gap-3">
-                        <Separator orientation="vertical" className="h-6" />
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <Separator orientation="vertical" className="h-6 hidden sm:block" />
                         <ThemeToggle />
-                        <button className="relative text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg">
+                        <button 
+                          className="relative text-muted-foreground hover:text-foreground transition-all duration-200 p-2 rounded-lg hover:bg-muted"
+                          aria-label="Notifications"
+                        >
                             <Bell size={18} />
                             <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full border-2 border-background" />
                         </button>
-                        <div className="flex items-center gap-2.5 pl-1">
+                        <div className="flex items-center gap-2.5 pl-1 border-l border-border sm:pl-3 sm:border-l">
                             <div className="text-right hidden md:block">
                                 <p className="text-sm font-medium text-foreground leading-tight">{user.name}</p>
                                 <p className="text-xs text-muted-foreground">{user.roleLabel}</p>
                             </div>
                             <Avatar className="h-8 w-8 ring-2 ring-primary/30 ring-offset-2 ring-offset-background">
-                                {/* <AvatarImage src="/d_file.png" alt="Profile" /> */}
                                 <AvatarFallback className="bg-muted text-foreground"><User size={14} /></AvatarFallback>
                             </Avatar>
                         </div>
