@@ -26,13 +26,10 @@ namespace DFile.backend.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
-            Console.WriteLine($"[Auth] Login attempt for: {model.Email} at {DateTime.UtcNow}");
-            
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
-            
+
             if (user == null)
             {
-                Console.WriteLine($"[Auth] User not found: {model.Email}");
                 return Unauthorized(new { message = "Invalid credentials" });
             }
 
@@ -48,11 +45,9 @@ namespace DFile.backend.Controllers
 
             if (!BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
             {
-                Console.WriteLine($"[Auth] Invalid password for: {model.Email}");
                 return Unauthorized(new { message = "Invalid credentials" });
             }
 
-            Console.WriteLine($"[Auth] Login successful for: {model.Email}");
             var token = GenerateJwtToken(user);
             return Ok(new { token, user });
         }

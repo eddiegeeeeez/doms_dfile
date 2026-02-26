@@ -38,26 +38,16 @@ export function MaintenanceOperations({ onCreateRequest, onRecordClick }: Mainte
         return asset ? asset.desc : id;
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case "Pending":
-                return "text-amber-700";
-            case "In Progress":
-                return "text-blue-700";
-            case "Completed":
-                return "text-emerald-700";
-            default:
-                return "text-muted-foreground";
-        }
+    const statusVariant: Record<string, "warning" | "info" | "success" | "muted"> = {
+        Pending: "warning",
+        "In Progress": "info",
+        Completed: "success",
     };
 
-    const getPriorityColor = (priority: string) => {
-        switch (priority) {
-            case "High": return "text-red-600 font-bold";
-            case "Medium": return "text-amber-600 font-medium";
-            case "Low": return "text-emerald-600";
-            default: return "text-muted-foreground";
-        }
+    const priorityVariant: Record<string, "danger" | "warning" | "success" | "muted"> = {
+        High: "danger",
+        Medium: "warning",
+        Low: "success",
     };
 
     const filteredRecords = records.filter(record => {
@@ -102,7 +92,7 @@ export function MaintenanceOperations({ onCreateRequest, onRecordClick }: Mainte
                 </h1>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-background p-1 rounded-lg">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
                 <div className="flex flex-1 gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 items-center">
                     <div className="relative flex-1 max-w-sm min-w-[200px]">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -110,11 +100,11 @@ export function MaintenanceOperations({ onCreateRequest, onRecordClick }: Mainte
                             placeholder="Search requests..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-10 bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="pl-9 h-9 text-sm"
                         />
                     </div>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[180px] h-10 bg-background text-sm">
+                        <SelectTrigger className="w-[160px] h-9 text-sm">
                             <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
@@ -126,7 +116,7 @@ export function MaintenanceOperations({ onCreateRequest, onRecordClick }: Mainte
                         </SelectContent>
                     </Select>
                     <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                        <SelectTrigger className="w-[180px] h-10 bg-background text-sm">
+                        <SelectTrigger className="w-[160px] h-9 text-sm">
                             <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Priority" />
                         </SelectTrigger>
@@ -138,7 +128,7 @@ export function MaintenanceOperations({ onCreateRequest, onRecordClick }: Mainte
                         </SelectContent>
                     </Select>
                     <Select value={dateFilter} onValueChange={setDateFilter}>
-                        <SelectTrigger className="w-[180px] h-10 bg-background text-sm">
+                        <SelectTrigger className="w-[160px] h-9 text-sm">
                             <CalendarIcon className="w-4 h-4 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Date" />
                         </SelectTrigger>
@@ -204,12 +194,12 @@ export function MaintenanceOperations({ onCreateRequest, onRecordClick }: Mainte
                                             </div>
                                         </TableCell>
                                         <TableCell className="px-6 py-4 align-middle text-sm text-muted-foreground truncate text-left" title={record.description}>{record.description}</TableCell>
-                                        <TableCell className={`px-6 py-4 align-middle text-sm text-center ${getPriorityColor(record.priority)}`}>{record.priority}</TableCell>
+                                        <TableCell className="px-6 py-4 align-middle text-center">
+                                            <Badge variant={priorityVariant[record.priority] ?? "muted"}>{record.priority}</Badge>
+                                        </TableCell>
                                         <TableCell className="px-6 py-4 align-middle text-sm text-muted-foreground text-center">{new Date(record.dateReported).toLocaleDateString()}</TableCell>
                                         <TableCell className="px-6 py-4 align-middle text-center">
-                                            <Badge variant="outline" className={`text-sm border-none rounded-none bg-transparent inline-flex ${getStatusColor(record.status)}`}>
-                                                {record.status}
-                                            </Badge>
+                                            <Badge variant={statusVariant[record.status] ?? "muted"}>{record.status}</Badge>
                                         </TableCell>
                                         <TableCell className="px-6 py-4 align-middle text-center" onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center justify-center gap-1">

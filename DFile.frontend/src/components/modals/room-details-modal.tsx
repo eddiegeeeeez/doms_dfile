@@ -19,13 +19,10 @@ export function RoomDetailsModal({ open, onOpenChange, room, roomCategories, onE
 
     const category = roomCategories.find(c => c.id === room.categoryId);
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'Available': return 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400';
-            case 'Occupied': return 'text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400';
-            case 'Maintenance': return 'text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400';
-            default: return 'text-gray-600 bg-gray-50 dark:bg-gray-800 dark:text-gray-400';
-        }
+    const statusVariant: Record<string, "success" | "warning" | "danger" | "muted"> = {
+        Available: "success",
+        Occupied: "warning",
+        Maintenance: "danger",
     };
 
     return (
@@ -102,7 +99,7 @@ export function RoomDetailsModal({ open, onOpenChange, room, roomCategories, onE
                     <div className="pt-2 flex items-center justify-between">
                         <div className="space-y-1">
                              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">Status</span>
-                             <Badge variant="secondary" className={`mt-1 font-medium border-0 px-2.5 py-0.5 ${getStatusColor(room.status)}`}>
+                             <Badge variant={statusVariant[room.status] ?? "muted"} className="mt-1">
                                 {room.status}
                              </Badge>
                         </div>

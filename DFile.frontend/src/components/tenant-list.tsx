@@ -13,6 +13,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,8 +49,8 @@ export function TenantList() {
         try {
             const { data } = await api.get<TenantDto[]>('/api/tenants');
             setTenants(data);
-        } catch (error) {
-            console.error("Failed to fetch tenants", error);
+        } catch {
+            toast.error('Failed to load tenants');
         } finally {
             setIsLoading(false);
         }
@@ -59,17 +60,13 @@ export function TenantList() {
         fetchTenants();
     }, []);
 
-    // Placeholder for status update API call
     const updateTenantStatus = async (id: number, status: string) => {
         try {
             await api.put(`/api/tenants/${id}/status`, { status });
-            // Update local state
             setTenants(prev => prev.map(t => t.id === id ? { ...t, status } : t));
-        } catch (error) {
-            // console.error("Error updating status:", error);
+        } catch {
+            toast.error('Failed to update tenant status');
         }
-        // Optimistic update anyway for demo
-        setTenants(prev => prev.map(t => t.id === id ? { ...t, status } : t));
     };
 
     const handleRowClick = (tenant: TenantDto) => {
@@ -124,7 +121,7 @@ export function TenantList() {
                 <p className="text-muted-foreground">Manage organization access and subscriptions</p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-background p-1 rounded-lg">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
                 <div className="flex flex-1 gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 items-center">
                     <div className="relative flex-1 max-w-sm min-w-[200px]">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -132,11 +129,11 @@ export function TenantList() {
                             placeholder="Search organizations..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-10 bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="pl-9 h-9 text-sm"
                         />
                     </div>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[180px] h-10 bg-background text-sm">
+                        <SelectTrigger className="w-[160px] h-9 text-sm">
                             <div className="flex items-center gap-2">
                                 <Filter className="h-3.5 w-3.5 text-muted-foreground" />
                                 <SelectValue placeholder="Status" />
@@ -167,7 +164,7 @@ export function TenantList() {
                 </div>
             </div>
 
-            <Card className="border-border shadow-sm  overflow-hidden">
+            <Card className="overflow-hidden">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <Table className="w-full table-fixed">
@@ -198,7 +195,7 @@ export function TenantList() {
                             filteredTenants.map((tenant) => (
                                 <TableRow 
                                     key={tenant.id} 
-                                    className="hover:bg-muted/30 transition-colors cursor-pointer border-b border-border last:border-0"
+                                    className="hover:bg-muted/30 transition-colors cursor-pointer"
                                     onClick={() => handleRowClick(tenant)}
                                 >
                                     <TableCell className="px-4 py-3 align-middle font-normal">

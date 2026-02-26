@@ -36,8 +36,7 @@ export function useAddRoom() {
             queryClient.invalidateQueries({ queryKey: ['rooms'] });
             toast.success('Room added successfully');
         },
-        onError: (error) => {
-            console.error('Failed to add room:', error);
+        onError: () => {
             toast.error('Failed to add room');
         },
     });
@@ -55,8 +54,7 @@ export function useUpdateRoom() {
             queryClient.invalidateQueries({ queryKey: ['rooms'] });
             toast.success('Room updated successfully');
         },
-        onError: (error) => {
-            console.error('Failed to update room:', error);
+        onError: () => {
             toast.error('Failed to update room');
         },
     });
@@ -79,8 +77,7 @@ export function useArchiveRoom() {
             queryClient.invalidateQueries({ queryKey: ['rooms'] });
             toast.success('Room archive status updated');
         },
-        onError: (error) => {
-            console.error('Failed to update room archive status:', error);
+        onError: () => {
             toast.error('Failed to update room archive status');
         },
     });
@@ -98,8 +95,7 @@ export function useAddRoomCategory() {
             queryClient.invalidateQueries({ queryKey: ['room-categories'] });
             toast.success('Room category added');
         },
-        onError: (error) => {
-            console.error('Failed to add room category:', error);
+        onError: () => {
             toast.error('Failed to add room category');
         },
     });
@@ -117,8 +113,7 @@ export function useUpdateRoomCategory() {
             queryClient.invalidateQueries({ queryKey: ['room-categories'] });
             toast.success('Room category updated');
         },
-        onError: (error) => {
-            console.error('Failed to update room category:', error);
+        onError: () => {
             toast.error('Failed to update room category');
         },
     });
@@ -141,8 +136,7 @@ export function useArchiveRoomCategory() {
             queryClient.invalidateQueries({ queryKey: ['room-categories'] });
             toast.success('Room category archive status updated');
         },
-        onError: (error) => {
-            console.error('Failed to update room category archive status:', error);
+        onError: () => {
             toast.error('Failed to update room category archive status');
         },
     });

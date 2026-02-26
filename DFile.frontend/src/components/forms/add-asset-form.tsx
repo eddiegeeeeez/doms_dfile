@@ -131,7 +131,7 @@ export function AddAssetForm({ categories, onCancel, onSuccess, onAddAsset, isMo
                                         <SelectItem value="Available"><span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"/>Available</span></SelectItem>
                                         <SelectItem value="In Use"><span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500"/>In Use</span></SelectItem>
                                         <SelectItem value="Maintenance"><span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500"/>Maintenance</span></SelectItem>
-                                        <SelectItem value="Disposed"><span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-slate-500"/>Disposed</span></SelectItem>
+                                        <SelectItem value="Disposed"><span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-muted-foreground"/>Disposed</span></SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

@@ -3,9 +3,6 @@ import api from '@/lib/api';
 import { Task } from '@/types/task';
 import { toast } from 'sonner';
 
-// In-memory store for session (REMOVED - CONNECTED TO API)
-// let MOCK_TASKS: Task[] = ...
-
 export function useTasks(showArchived: boolean = false) {
     return useQuery({
         queryKey: ['tasks', showArchived],
@@ -30,8 +27,7 @@ export function useAddTask() {
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
             toast.success('Task created successfully');
         },
-        onError: (error) => {
-            console.error('Failed to create task:', error);
+        onError: () => {
             toast.error('Failed to create task');
         },
     });
@@ -49,8 +45,7 @@ export function useUpdateTask() {
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
             toast.success('Task updated successfully');
         },
-        onError: (error) => {
-            console.error('Failed to update task:', error);
+        onError: () => {
             toast.error('Failed to update task');
         },
     });
@@ -72,8 +67,7 @@ export function useArchiveTask() {
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
             toast.success('Task archived');
         },
-        onError: (error) => {
-            console.error('Failed to archive task:', error);
+        onError: () => {
             toast.error('Failed to archive task');
         },
     });
@@ -90,8 +84,7 @@ export function useRestoreTask() {
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
             toast.success('Task restored');
         },
-        onError: (error) => {
-            console.error('Failed to restore task:', error);
+        onError: () => {
             toast.error('Failed to restore task');
         },
     });

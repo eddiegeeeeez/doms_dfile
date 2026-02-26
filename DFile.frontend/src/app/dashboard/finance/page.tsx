@@ -1,9 +1,17 @@
 "use client";
 
-import { FinanceDashboard } from "@/components/finance-dashboard";
-import { DepreciationView } from "@/components/depreciation-view";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PieChart, TrendingDown, FileBadge } from "lucide-react";
+
+const FinanceDashboard = dynamic(() => import("@/components/finance-dashboard").then(m => ({ default: m.FinanceDashboard })), {
+    loading: () => <Card className="p-5"><Skeleton className="h-64 w-full" /></Card>,
+});
+const DepreciationView = dynamic(() => import("@/components/depreciation-view").then(m => ({ default: m.DepreciationView })), {
+    loading: () => <Card className="p-5"><Skeleton className="h-64 w-full" /></Card>,
+});
 
 export default function FinanceDashboardPage() {
     return (

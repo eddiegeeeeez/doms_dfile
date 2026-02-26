@@ -165,7 +165,7 @@ export function DepreciationView({ onAssetClick }: DepreciationViewProps) {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-background p-1 rounded-lg">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
                 <div className="flex flex-1 gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 items-center">
                     <div className="relative flex-1 max-w-sm min-w-[200px]">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -173,7 +173,7 @@ export function DepreciationView({ onAssetClick }: DepreciationViewProps) {
                             placeholder="Search asset, ID, or room..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-10 bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="pl-9 h-9 text-sm"
                         />
                     </div>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -233,14 +233,14 @@ export function DepreciationView({ onAssetClick }: DepreciationViewProps) {
                 </div>
             </div>
 
-            <Card className="border-border shadow-sm  overflow-hidden">
+            <Card className="overflow-hidden">
                 <CardContent className="p-0">
                 {/* Content View */}
                 {viewMode === "assets" ? (
                     <div className="overflow-x-auto">
                         <Table className="w-full table-fixed">
                             <TableHeader>
-                                <TableRow className="bg-muted/50 hover:bg-muted/50 border-b border-border">
+                                <TableRow className="bg-muted/50 hover:bg-muted/50">
                                     <TableHead className="px-4 py-3 align-middle text-xs font-medium text-muted-foreground text-left w-[20%]">Asset Details</TableHead>
                                     <TableHead className="px-4 py-3 align-middle text-xs font-medium text-muted-foreground text-center w-[100px]">Purchased</TableHead>
                                     <CurrencyHeader className="w-[100px]">Cost Basis</CurrencyHeader>
@@ -262,7 +262,7 @@ export function DepreciationView({ onAssetClick }: DepreciationViewProps) {
                                     </TableRow>
                                 ) : (
                                     filteredAssets.map(asset => (
-                                        <TableRow key={asset.id} className="hover:bg-muted/5 transition-colors cursor-pointer border-b border-border last:border-0" onClick={() => onAssetClick?.(asset)}>
+                                        <TableRow key={asset.id} className="hover:bg-muted/5 transition-colors cursor-pointer" onClick={() => onAssetClick?.(asset)}>
                                             <TableCell className="px-4 py-3 align-middle text-left">
                                                 <div className="font-normal text-sm text-foreground truncate max-w-[200px]" title={asset.desc}>{asset.desc}</div>
                                                 <div className="text-xs text-muted-foreground flex items-center gap-1">

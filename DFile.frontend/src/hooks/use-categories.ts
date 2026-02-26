@@ -41,8 +41,7 @@ export function useAddCategory() {
             queryClient.invalidateQueries({ queryKey: ['categories'] });
             toast.success('Category added');
         },
-        onError: (error) => {
-            console.error('Failed to add category:', error);
+        onError: () => {
             toast.error('Failed to add category');
         }
     });
@@ -60,8 +59,7 @@ export function useUpdateCategory() {
             queryClient.invalidateQueries({ queryKey: ['categories'] });
             toast.success('Category updated');
         },
-        onError: (error: any) => {
-            console.error('Failed to update category:', error);
+        onError: () => {
             toast.error('Failed to update category');
         }
     });
@@ -78,8 +76,7 @@ export function useArchiveCategory() {
             queryClient.invalidateQueries({ queryKey: ['categories'] });
             toast.success('Category archived');
         },
-        onError: (error: any) => {
-            console.error('Failed to archive category:', error);
+        onError: () => {
             toast.error('Failed to archive category');
         }
     });
@@ -96,8 +93,7 @@ export function useRestoreCategory() {
             queryClient.invalidateQueries({ queryKey: ['categories'] });
             toast.success('Category restored');
         },
-        onError: (error: any) => {
-            console.error('Failed to restore category:', error);
+        onError: () => {
             toast.error('Failed to restore category');
         }
     });

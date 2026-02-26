@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import api from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { Loader2, Check, Eye, EyeOff, Lock, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -120,31 +121,25 @@ export function TenantRegistrationForm() {
             return;
         }
 
-        // UI-only as requested for mock
-        console.log("Submitting Tenant Creation:", {
-            tenantName,
-            admin: {
-                firstName,
-                middleName,
-                lastName,
-                workEmail,
-                contactNumber,
-                initialPassword
-            },
-            plan: selectedPlan
-        });
-
-        // Simulate network delay and success
-        setTimeout(() => {
+        try {
+            await api.post('/api/Tenants', {
+                tenantName,
+                adminName: `${firstName}${middleName ? ' ' + middleName : ''} ${lastName}`.trim(),
+                adminEmail: workEmail,
+                adminPassword: initialPassword,
+                subscriptionPlan: selectedPlan,
+            });
             setIsLoading(false);
             setSuccess(true);
-            
-            // Auto hide success message and reset form after 3 seconds
             setTimeout(() => {
                 setSuccess(false);
                 resetForm();
             }, 3000);
-        }, 1500);
+        } catch (err: unknown) {
+            setIsLoading(false);
+            const msg = (err as { response?: { data?: unknown } })?.response?.data;
+            setErrors({ submit: typeof msg === 'string' ? msg : 'Failed to create tenant. Please try again.' });
+        }
     };
 
     const resetForm = () => {
@@ -357,6 +352,10 @@ export function TenantRegistrationForm() {
                     ))}
                 </div>
             </div>
+
+            {errors.submit && (
+                <p className="text-sm text-destructive font-medium text-center">{errors.submit}</p>
+            )}
 
             <div className="flex justify-end pt-4">
                 <Button type="submit" size="lg" disabled={isLoading} className="min-w-[150px]">

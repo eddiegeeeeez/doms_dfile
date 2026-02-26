@@ -56,15 +56,15 @@ export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, 
 
     const uniqueRoles = Array.from(new Set(employees.map(e => e.role).filter(role => role && role.trim() !== ""))).sort();
 
-    const statusColor: Record<string, string> = {
-        Active: "text-emerald-800 dark:text-emerald-400",
-        Inactive: "text-red-800 dark:text-red-400",
-        Archived: "text-gray-800 dark:text-gray-400",
+    const statusVariant: Record<string, "success" | "danger" | "muted"> = {
+        Active: "success",
+        Inactive: "danger",
+        Archived: "muted",
     };
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-background p-1 rounded-lg">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
                 <div className="flex flex-1 gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 items-center">
                     <div className="relative flex-1 max-w-sm min-w-[200px]">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -72,11 +72,11 @@ export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, 
                             placeholder="Search employees..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-10 bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="pl-9 h-9 text-sm"
                         />
                     </div>
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
-                        <SelectTrigger className="w-[180px] h-10 bg-background text-sm">
+                        <SelectTrigger className="w-[160px] h-9 text-sm">
                             <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Filter Role" />
                         </SelectTrigger>
@@ -105,11 +105,11 @@ export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, 
             </div>
 
             {/* Personnel Card */}
-            <Card className="border-border shadow-sm  overflow-hidden">
+            <Card className="overflow-hidden">
                 <div className="overflow-x-auto">
-                    <Table className="min-w-[1200px] table-fixed border-separate border-spacing-0">
+                    <Table className="min-w-[1200px] table-fixed">
                         <TableHeader>
-                            <TableRow className="bg-muted/50 hover:bg-muted/50 border-b border-border">
+                            <TableRow className="bg-muted/50 hover:bg-muted/50">
                                 <TableHead className="h-10 px-4 py-3 text-left align-middle font-medium text-muted-foreground text-xs w-[100px]">ID</TableHead>
                                 <TableHead className="h-10 px-4 py-3 text-left align-middle font-medium text-muted-foreground text-xs w-[200px]">Name</TableHead>
                                 <TableHead className="h-10 px-4 py-3 text-left align-middle font-medium text-muted-foreground text-xs w-[250px]">Email</TableHead>
@@ -130,50 +130,48 @@ export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, 
                                 </TableRow>
                             ) : (
                                 displayEmps.map((emp) => (
-                                    <TableRow key={emp.id} className="hover:bg-muted/30 transition-colors cursor-pointer border-b border-border last:border-0" onClick={() => onEmployeeClick?.(emp)}>
-                                        <TableCell className="p-0 align-middle border-b border-border">
+                                    <TableRow key={emp.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => onEmployeeClick?.(emp)}>
+                                        <TableCell className="p-0 align-middle">
                                             <div className="px-4 py-3 w-[100px] truncate font-mono text-xs text-muted-foreground" title={emp.id}>
                                                 {emp.id}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="p-0 align-middle border-b border-border">
+                                        <TableCell className="p-0 align-middle">
                                             <div className="px-4 py-3 w-[200px] truncate text-sm font-normal text-foreground" title={`${emp.firstName} ${emp.middleName ? emp.middleName + ' ' : ''}${emp.lastName}`}>
                                                 {emp.firstName} {emp.middleName ? `${emp.middleName} ` : ""}{emp.lastName}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="p-0 align-middle border-b border-border">
+                                        <TableCell className="p-0 align-middle">
                                             <div className="px-4 py-3 w-[250px] truncate text-sm text-muted-foreground" title={emp.email}>
                                                 {emp.email}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="p-0 align-middle border-b border-border">
+                                        <TableCell className="p-0 align-middle">
                                             <div className="px-4 py-3 w-[140px] truncate text-sm text-muted-foreground" title={emp.contactNumber}>
                                                 {emp.contactNumber}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="p-0 align-middle border-b border-border">
+                                        <TableCell className="p-0 align-middle">
                                             <div className="px-4 py-3 w-[140px] truncate text-sm text-muted-foreground font-normal" title={emp.department}>
                                                 {emp.department}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="p-0 align-middle border-b border-border">
+                                        <TableCell className="p-0 align-middle">
                                             <div className="px-4 py-3 w-[140px] truncate text-sm text-muted-foreground font-normal" title={emp.role}>
                                                 {emp.role}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="p-0 align-middle border-b border-border">
+                                        <TableCell className="p-0 align-middle">
                                             <div className="px-4 py-3 w-[120px] truncate text-sm text-muted-foreground" title={emp.hireDate}>
                                                 {emp.hireDate}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="p-0 align-middle border-b border-border">
+                                        <TableCell className="p-0 align-middle">
                                             <div className="px-4 py-3 w-[100px]">
-                                                <span className={`text-sm font-normal inline-block ${statusColor[emp.status] || ""}`}>
-                                                    {emp.status}
-                                                </span>
+                                                <Badge variant={statusVariant[emp.status] ?? "muted"}>{emp.status}</Badge>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="p-0 align-middle text-center border-b border-border">
+                                        <TableCell className="p-0 align-middle text-center">
                                             <div className="px-4 py-3 w-[80px] flex justify-center">
                                                 <Button
                                                     variant="ghost" 
@@ -223,9 +221,9 @@ export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, 
                                     <div className="flex-1 max-w-xs bg-muted/50 p-3 rounded-lg text-xs text-muted-foreground leading-relaxed hidden md:block border border-border/50">
                                         &ldquo;{role.scope}&rdquo;
                                     </div>
-                                    <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-all">
-                                        <ChevronRight size={16} />
-                                    </button>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0">
+                                        <ChevronRight size={15} />
+                                    </Button>
                                 </CardContent>
                             </Card>
                         ))}

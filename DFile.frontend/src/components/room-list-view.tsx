@@ -87,7 +87,7 @@ export function RoomListView({ rooms, roomCategories, onCreateRoom, onManageCate
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-background p-1 rounded-lg">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
                 <div className="flex flex-1 gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 items-center">
                     <div className="relative flex-1 max-w-sm min-w-[200px]">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -95,7 +95,7 @@ export function RoomListView({ rooms, roomCategories, onCreateRoom, onManageCate
                             placeholder="Search room, floor or category..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-10 bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="pl-9 h-9 text-sm"
                         />
                     </div>
                      <Select value={floorFilter} onValueChange={setFloorFilter}>
@@ -141,12 +141,12 @@ export function RoomListView({ rooms, roomCategories, onCreateRoom, onManageCate
                 </div>
             </div>
 
-            <Card className="border-border shadow-sm  overflow-hidden">
+            <Card className="overflow-hidden">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <Table className="w-full table-fixed">
                             <TableHeader>
-                                <TableRow className="bg-muted/50 hover:bg-muted/50 border-border">
+                                <TableRow className="bg-muted/50 hover:bg-muted/50">
                                     <TableHead className="px-4 py-3 align-middle font-medium text-muted-foreground w-[20%] text-left">Room Number</TableHead>
                                     <TableHead className="px-4 py-3 align-middle font-medium text-muted-foreground w-[20%] text-left">Category</TableHead>
                                     <TableHead className="px-4 py-3 align-middle font-medium text-muted-foreground w-[20%] text-left">Sub-category</TableHead>
@@ -167,7 +167,7 @@ export function RoomListView({ rooms, roomCategories, onCreateRoom, onManageCate
                                         return (
                                             <TableRow
                                                 key={room.id}
-                                                className="hover:bg-muted/5 transition-colors cursor-pointer border-b border-border last:border-0"
+                                                className="hover:bg-muted/5 transition-colors cursor-pointer"
                                                 onClick={() => handleRowClick(room)}
                                             >
                                                 <TableCell className="px-4 py-3 align-middle text-sm font-medium text-foreground text-left w-[20%]">

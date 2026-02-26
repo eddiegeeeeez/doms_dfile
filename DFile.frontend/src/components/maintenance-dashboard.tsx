@@ -1,6 +1,7 @@
-import { Wrench, AlertTriangle, Clock, Calendar as CalendarIcon, TrendingDown, CheckCircle2, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Wrench, AlertTriangle, Clock, Calendar as CalendarIcon, TrendingDown } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatCard } from "@/components/ui/stat-card";
 import { MaintenanceRecord, Asset } from "@/types/asset";
 import { useMaintenanceRecords } from "@/hooks/use-maintenance";
 import { useAssets } from "@/hooks/use-assets";
@@ -76,60 +77,12 @@ export function MaintenanceDashboard({ onScheduleMaintenance }: MaintenanceDashb
         <div className="space-y-6">
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                <div className="bg-card  border border-border p-4 shadow-sm flex items-center justify-between">
-                    <p className="text-sm font-medium text-muted-foreground">Open Requests</p>
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-2xl font-bold text-red-600">{openRequests}</h3>
-                        <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-600">
-                            <AlertTriangle size={20} />
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-card  border border-border p-4 shadow-sm flex items-center justify-between">
-                    <p className="text-sm font-medium text-muted-foreground">Overdue</p>
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-2xl font-bold text-orange-600">{overdueRequests}</h3>
-                        <div className="h-10 w-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-600">
-                            <Clock size={20} />
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-card  border border-border p-4 shadow-sm flex items-center justify-between">
-                    <p className="text-sm font-medium text-muted-foreground">In Repair</p>
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-2xl font-bold text-blue-600">{inRepair}</h3>
-                        <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600">
-                            <Wrench size={20} />
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-card  border border-border p-4 shadow-sm flex items-center justify-between">
-                    <p className="text-sm font-medium text-muted-foreground">Attention Needed</p>
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-2xl font-bold text-yellow-600">{immediateAttention}</h3>
-                        <div className="h-10 w-10 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-600">
-                            <AlertTriangle size={20} />
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-card  border border-border p-4 shadow-sm flex items-center justify-between">
-                    <p className="text-sm font-medium text-muted-foreground">Scheduled (Week)</p>
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-2xl font-bold text-emerald-600">{scheduledThisWeek}</h3>
-                        <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600">
-                            <CalendarIcon size={20} />
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-card  border border-border p-4 shadow-sm flex items-center justify-between">
-                    <p className="text-sm font-medium text-muted-foreground">Avg MTTR</p>
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-2xl font-bold text-indigo-600">{mttrDays} <span className="text-sm font-medium text-muted-foreground">days</span></h3>
-                        <div className="h-10 w-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-600">
-                            <TrendingDown size={20} />
-                        </div>
-                    </div>
-                </div>
+                <StatCard label="Open Requests" value={openRequests} icon={AlertTriangle} iconClassName="bg-red-500/10 text-red-600" valueClassName="text-red-600" />
+                <StatCard label="Overdue" value={overdueRequests} icon={Clock} iconClassName="bg-orange-500/10 text-orange-600" valueClassName="text-orange-600" />
+                <StatCard label="In Repair" value={inRepair} icon={Wrench} iconClassName="bg-blue-500/10 text-blue-600" valueClassName="text-blue-600" />
+                <StatCard label="Attention Needed" value={immediateAttention} icon={AlertTriangle} iconClassName="bg-yellow-500/10 text-yellow-600" valueClassName="text-yellow-600" />
+                <StatCard label="Scheduled (Week)" value={scheduledThisWeek} icon={CalendarIcon} iconClassName="bg-emerald-500/10 text-emerald-600" valueClassName="text-emerald-600" />
+                <StatCard label="Avg MTTR" value={`${mttrDays}d`} icon={TrendingDown} iconClassName="bg-indigo-500/10 text-indigo-600" valueClassName="text-indigo-600" />
             </div>
 
             {/* Secondary Dashboard Grid */}

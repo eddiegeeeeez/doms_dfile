@@ -1,3 +1,15 @@
+# =============================================================================
+# DFile.backend — Backend-only Dockerfile
+# =============================================================================
+# WARNING: This file builds the .NET backend WITHOUT the Next.js frontend.
+# wwwroot will be EMPTY — the app will serve only API routes, not the UI.
+#
+# For a full production build (backend + frontend static export) use the
+# root-level Dockerfile instead:
+#   docker build -t dfile .              (from repo root)
+#   docker compose up --build            (recommended)
+# =============================================================================
+
 # Use the official ASP.NET Core runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app

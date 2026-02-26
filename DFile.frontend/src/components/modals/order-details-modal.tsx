@@ -13,11 +13,11 @@ interface OrderDetailsModalProps {
     order: PurchaseOrder | null;
 }
 
-const statusColor: Record<string, string> = {
-    Pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-    Approved: "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400",
-    Delivered: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
-    Cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+const statusVariant: Record<string, "warning" | "info" | "success" | "danger"> = {
+    Pending: "warning",
+    Approved: "info",
+    Delivered: "success",
+    Cancelled: "danger",
 };
 
 export function OrderDetailsModal({ open, onOpenChange, order }: OrderDetailsModalProps) {
@@ -40,7 +40,7 @@ export function OrderDetailsModal({ open, onOpenChange, order }: OrderDetailsMod
                             <div className="flex items-center gap-2 mt-1.5">
                                 <Badge variant="secondary" className="font-mono text-xs">{order.id}</Badge>
                                 <Badge variant="outline" className="text-xs">{order.category}</Badge>
-                                <Badge className={`text-xs ${statusColor[order.status] || ""}`}>{order.status}</Badge>
+                                <Badge variant={statusVariant[order.status] ?? "muted"} className="text-xs">{order.status}</Badge>
                             </div>
                         </div>
                     </div>

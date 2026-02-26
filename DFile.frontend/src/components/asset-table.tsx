@@ -1,158 +1,286 @@
+"use client";
+
 import { useState, useMemo } from "react";
-import { QrCode, FileBarChart, ArrowUpDown, ArrowUp, ArrowDown, Archive, RotateCcw, Search, Filter, Package } from "lucide-react";
+import {
+    ColumnDef,
+    SortingState,
+    VisibilityState,
+    flexRender,
+    getCoreRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
+    useReactTable,
+} from "@tanstack/react-table";
+import {
+    QrCode, FileBarChart, ArrowUpDown, ArrowUp, ArrowDown,
+    Archive, RotateCcw, Search, Filter, Package, SlidersHorizontal,
+    ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+    DropdownMenu, DropdownMenuCheckboxItem,
+    DropdownMenuContent, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { QRCodeModal } from "@/components/modals/qr-code-modal";
 import {
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { CurrencyCell } from "@/components/ui/currency-cell";
-import { CurrencyHeader } from "@/components/ui/currency-header";
-
 import { Asset } from "@/types/asset";
 import { useAssets, useArchiveAsset, useRestoreAsset } from "@/hooks/use-assets";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const statusColors: Record<string, string> = {
-    "In Use": "text-emerald-700 dark:text-emerald-400",
-    "Available": "text-sky-700 dark:text-sky-400",
-    "Maintenance": "text-amber-700 dark:text-amber-400",
-    "Disposed": "text-red-700 dark:text-red-400",
+const statusVariant: Record<string, "success" | "info" | "warning" | "danger"> = {
+    "In Use": "success",
+    "Available": "info",
+    "Maintenance": "warning",
+    "Disposed": "danger",
 };
 
-type SortKey = keyof Asset;
-type SortDirection = "asc" | "desc";
+function SortableHeader({ column, children }: { column: { toggleSorting: (asc: boolean) => void; getIsSorted: () => false | "asc" | "desc" }; children: React.ReactNode }) {
+    const sorted = column.getIsSorted();
+    return (
+        <Button
+            variant="ghost"
+            className="h-auto p-0 text-xs font-medium text-muted-foreground hover:bg-transparent"
+            onClick={() => column.toggleSorting(sorted === "asc")}
+        >
+            {children}
+            {sorted === "asc" ? (
+                <ArrowUp size={14} className="ml-1" />
+            ) : sorted === "desc" ? (
+                <ArrowDown size={14} className="ml-1" />
+            ) : (
+                <ArrowUpDown size={14} className="ml-1 opacity-50" />
+            )}
+        </Button>
+    );
+}
 
 interface AssetTableProps {
     onAssetClick?: (asset: Asset) => void;
 }
 
 export function AssetTable({ onAssetClick }: AssetTableProps) {
-    const [showArchived, setShowArchived] = useState(false);
-    // Fetch all assets so we can calculate counts correctly
     const { data: assets = [], isLoading } = useAssets();
     const archiveAssetMutation = useArchiveAsset();
     const restoreAssetMutation = useRestoreAsset();
 
-    const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection } | null>(null);
+    const [showArchived, setShowArchived] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [categoryFilter, setCategoryFilter] = useState("All");
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const [sorting, setSorting] = useState<SortingState>([]);
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+    const [selectedAssetForQR, setSelectedAssetForQR] = useState<Asset | null>(null);
+    const [pageInput, setPageInput] = useState("");
 
-    // Derived Data
-    const uniqueCategories = useMemo(() => Array.from(new Set(assets.map(a => a.cat))).sort(), [assets]);
+    const uniqueCategories = useMemo(
+        () => Array.from(new Set(assets.map((a) => a.cat))).sort(),
+        [assets],
+    );
 
     const filteredAssets = useMemo(() => {
-        return assets.filter(asset => {
-            // Archive Status - Handled by client-side filter
+        return assets.filter((asset) => {
             if (showArchived ? asset.status !== "Archived" : asset.status === "Archived") return false;
 
-            // Text Search
-            const query = searchQuery.toLowerCase();
-            const matchesSearch =
-                asset.desc.toLowerCase().includes(query) ||
-                asset.id.toLowerCase().includes(query) ||
-                asset.model?.toLowerCase().includes(query) ||
-                asset.serialNumber?.toLowerCase().includes(query);
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                const match =
+                    asset.desc.toLowerCase().includes(q) ||
+                    asset.id.toLowerCase().includes(q) ||
+                    asset.model?.toLowerCase().includes(q) ||
+                    asset.serialNumber?.toLowerCase().includes(q);
+                if (!match) return false;
+            }
 
-            if (!matchesSearch) return false;
-
-            // Status Filter
             if (statusFilter !== "All" && asset.status !== statusFilter) return false;
-
-            // Category Filter
             if (categoryFilter !== "All" && asset.cat !== categoryFilter) return false;
 
             return true;
         });
     }, [assets, showArchived, searchQuery, statusFilter, categoryFilter]);
 
-    const handleSort = (key: SortKey) => {
-        let direction: SortDirection = "asc";
-        if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
-            direction = "desc";
-        }
-        setSortConfig({ key, direction });
-        setCurrentPage(1); // Reset to first page on sort
-    };
+    const columns = useMemo<ColumnDef<Asset>[]>(
+        () => [
+            {
+                accessorKey: "id",
+                header: ({ column }) => <SortableHeader column={column}>Asset ID</SortableHeader>,
+                cell: ({ row }) => (
+                    <span className="font-mono text-xs text-muted-foreground">
+                        {row.getValue("id")}
+                    </span>
+                ),
+            },
+            {
+                accessorKey: "desc",
+                header: ({ column }) => <SortableHeader column={column}>Asset Name</SortableHeader>,
+                cell: ({ row }) => (
+                    <span className="text-sm text-foreground">{row.getValue("desc")}</span>
+                ),
+            },
+            {
+                accessorKey: "cat",
+                header: ({ column }) => <SortableHeader column={column}>Category</SortableHeader>,
+                cell: ({ row }) => (
+                    <span className="text-sm text-muted-foreground">{row.getValue("cat")}</span>
+                ),
+            },
+            {
+                accessorKey: "status",
+                header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
+                cell: ({ row }) => {
+                    const status = row.getValue("status") as string;
+                    return <Badge variant={statusVariant[status] ?? "muted"}>{status}</Badge>;
+                },
+            },
+            {
+                accessorKey: "room",
+                header: ({ column }) => <SortableHeader column={column}>Room</SortableHeader>,
+                cell: ({ row }) => (
+                    <span className="text-sm text-muted-foreground">{row.getValue("room")}</span>
+                ),
+            },
+            {
+                accessorKey: "value",
+                header: ({ column }) => (
+                    <div className="flex justify-end">
+                        <SortableHeader column={column}>Value</SortableHeader>
+                    </div>
+                ),
+                cell: ({ row }) => <CurrencyCell value={row.getValue("value") as number} />,
+            },
+            {
+                id: "qr",
+                enableHiding: false,
+                header: () => (
+                    <span className="text-xs font-medium text-muted-foreground">QR</span>
+                ),
+                cell: ({ row }) => (
+                    <div className="text-center">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedAssetForQR(row.original);
+                            }}
+                            aria-label="Show QR code"
+                        >
+                            <QrCode size={15} />
+                        </Button>
+                    </div>
+                ),
+            },
+            {
+                id: "actions",
+                enableHiding: false,
+                header: () => (
+                    <span className="text-xs font-medium text-muted-foreground text-center block">
+                        {showArchived ? "Restore" : "Archive"}
+                    </span>
+                ),
+                cell: ({ row }) => {
+                    const asset = row.original;
+                    const isArchived = asset.status === "Archived";
+                    return (
+                        <div className="text-center">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={`h-7 w-7 ${isArchived ? "text-primary hover:bg-primary/10" : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"}`}
+                                title={isArchived ? "Restore" : "Archive"}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isArchived) {
+                                        restoreAssetMutation.mutate(asset.id);
+                                    } else {
+                                        archiveAssetMutation.mutate(asset.id);
+                                    }
+                                }}
+                                aria-label={isArchived ? "Restore asset" : "Archive asset"}
+                            >
+                                {isArchived ? <RotateCcw size={15} /> : <Archive size={15} />}
+                            </Button>
+                        </div>
+                    );
+                },
+            },
+        ],
+        [showArchived, archiveAssetMutation, restoreAssetMutation],
+    );
 
-    const sortedAssets = [...filteredAssets].sort((a, b) => {
-        if (!sortConfig) return 0;
-        const { key, direction } = sortConfig;
-
-        const aValue = a[key] ?? "";
-        const bValue = b[key] ?? "";
-
-        if (aValue < bValue) return direction === "asc" ? -1 : 1;
-        if (aValue > bValue) return direction === "asc" ? 1 : -1;
-        return 0;
+    const table = useReactTable({
+        data: filteredAssets,
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        onSortingChange: setSorting,
+        onColumnVisibilityChange: setColumnVisibility,
+        state: { sorting, columnVisibility },
+        initialState: { pagination: { pageSize: 10 } },
     });
 
-    const getSortIcon = (key: SortKey) => {
-        if (sortConfig?.key !== key) return <ArrowUpDown size={14} className="ml-2 text-muted-foreground/50" />;
-        return sortConfig.direction === "asc" ? <ArrowUp size={14} className="ml-2 text-foreground" /> : <ArrowDown size={14} className="ml-2 text-foreground" />;
-    };
-
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('en-US', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-    };
-
-    // Pagination Logic
-    const totalPages = Math.ceil(sortedAssets.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const paginatedAssets = sortedAssets.slice(startIndex, startIndex + itemsPerPage);
-
-    const [selectedAssetForQR, setSelectedAssetForQR] = useState<Asset | null>(null);
-
     const handleExportCSV = () => {
-        const headers = ["Asset ID", "Asset Name", "Category", "Status", "Room", "Value"];
-        const rows = sortedAssets.map(asset => [
-            asset.id,
-            `"${asset.desc.replace(/"/g, '""')}"`, // Escape quotes
-            asset.cat,
-            asset.status,
-            asset.room,
-            asset.value.toFixed(2)
-        ]);
-
-        const csvContent = [
-            headers.join(","),
-            ...rows.map(r => r.join(","))
+        const rows = table.getSortedRowModel().rows.map((row) => {
+            const a = row.original;
+            return [a.id, `"${a.desc.replace(/"/g, '""')}"`, a.cat, a.status, a.room, a.value.toFixed(2)];
+        });
+        const csv = [
+            "Asset ID,Asset Name,Category,Status,Room,Value",
+            ...rows.map((r) => r.join(",")),
         ].join("\n");
-
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `fleet_report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.href = url;
+        link.download = `fleet_report_${new Date().toISOString().split("T")[0]}.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
+    const handlePageInputSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            const page = Number(pageInput);
+            if (page >= 1 && page <= table.getPageCount()) {
+                table.setPageIndex(page - 1);
+            }
+            setPageInput("");
+        }
+    };
+
     if (isLoading) {
         return (
-            <div className=" border border-border overflow-hidden bg-card p-6 space-y-4">
-                <div className="flex justify-between items-center mb-6">
-                    <Skeleton className="h-8 w-48" />
-                    <Skeleton className="h-8 w-32" />
+            <Card className="overflow-hidden">
+                <div className="p-5 border-b border-border">
+                    <div className="flex justify-between items-center">
+                        <Skeleton className="h-5 w-40" />
+                        <Skeleton className="h-8 w-28" />
+                    </div>
                 </div>
-                <div className="flex gap-4 mb-6">
-                    <Skeleton className="h-10 flex-1" />
-                    <Skeleton className="h-10 w-32" />
-                    <Skeleton className="h-10 w-32" />
+                <div className="p-5 flex gap-3">
+                    <Skeleton className="h-9 flex-1" />
+                    <Skeleton className="h-9 w-36" />
+                    <Skeleton className="h-9 w-36" />
                 </div>
-                <div className="space-y-2">
+                <div className="divide-y divide-border">
                     {[...Array(5)].map((_, i) => (
-                        <Skeleton key={i} className="h-16 w-full" />
+                        <div key={i} className="px-5 py-3.5 flex gap-4 items-center">
+                            <Skeleton className="h-4 w-20" />
+                            <Skeleton className="h-4 flex-1" />
+                            <Skeleton className="h-5 w-16 rounded-full" />
+                            <Skeleton className="h-4 w-20" />
+                        </div>
                     ))}
                 </div>
-            </div>
+            </Card>
         );
     }
 
@@ -164,170 +292,194 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                 asset={selectedAssetForQR}
             />
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-background p-1 rounded-lg">
-                <div className="flex flex-1 gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 items-center">
-                    <div className="relative flex-1 max-w-sm min-w-[200px]">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search assets..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-10 bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        />
+            <Card className="overflow-hidden">
+                {/* Toolbar */}
+                <div className="p-4 border-b border-border flex flex-col sm:flex-row gap-3 justify-between items-center">
+                    <div className="flex flex-1 gap-2 w-full sm:w-auto items-center">
+                        <div className="relative flex-1 max-w-sm">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                            <Input
+                                placeholder="Search assets..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-9 h-9 text-sm"
+                                aria-label="Search assets"
+                            />
+                        </div>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="w-[160px] h-9 text-sm">
+                                <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="All">All Status</SelectItem>
+                                {Object.keys(statusVariant).map((s) => (
+                                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                            <SelectTrigger className="w-[160px] h-9 text-sm">
+                                <Package className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                                <SelectValue placeholder="Category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="All">All Categories</SelectItem>
+                                {uniqueCategories.map((cat) => (
+                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[180px] h-10 bg-background text-sm">
-                            <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
-                            <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="All">All Status</SelectItem>
-                            {Object.keys(statusColors).map(status => (
-                                <SelectItem key={status} value={status}>{status}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                        <SelectTrigger className="w-[180px] h-10 bg-background text-sm">
-                            <Package className="w-4 h-4 mr-2 text-muted-foreground" />
-                            <SelectValue placeholder="Category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="All">All Categories</SelectItem>
-                            {uniqueCategories.map(cat => (
-                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-9 text-sm">
+                                    <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
+                                    Columns
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
+                                {table
+                                    .getAllColumns()
+                                    .filter((col) => col.getCanHide())
+                                    .map((column) => (
+                                        <DropdownMenuCheckboxItem
+                                            key={column.id}
+                                            className="capitalize text-sm"
+                                            checked={column.getIsVisible()}
+                                            onCheckedChange={(v) => column.toggleVisibility(!!v)}
+                                        >
+                                            {column.id}
+                                        </DropdownMenuCheckboxItem>
+                                    ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button variant="outline" size="sm" className="h-9 text-sm" onClick={handleExportCSV}>
+                            <FileBarChart size={14} className="mr-1.5" />
+                            Export
+                        </Button>
+                        <Button
+                            variant={showArchived ? "default" : "outline"}
+                            size="sm"
+                            className="h-9 text-sm"
+                            onClick={() => setShowArchived(!showArchived)}
+                        >
+                            {showArchived ? (
+                                <>
+                                    <RotateCcw size={14} className="mr-1.5" />
+                                    Active ({assets.filter((a) => a.status !== "Archived").length})
+                                </>
+                            ) : (
+                                <>
+                                    <Archive size={14} className="mr-1.5" />
+                                    Archived ({assets.filter((a) => a.status === "Archived").length})
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <Button variant="outline" size="sm" className="text-sm h-10" onClick={handleExportCSV}>
-                        <FileBarChart size={16} className="mr-2" />
-                        Export
-                    </Button>
-                    <Button variant={showArchived ? "default" : "outline"} size="sm" className="text-sm h-10 w-[160px] justify-start" onClick={() => setShowArchived(!showArchived)}>
-                        {showArchived ? <><RotateCcw size={16} className="mr-2" />Show Active ({assets.filter(a => a.status !== "Archived").length})</> : <><Archive size={16} className="mr-2" />Show Archive ({assets.filter(a => a.status === "Archived").length})</>}
-                    </Button>
-                </div>
-            </div>
 
-            <Card className="border-border shadow-sm  overflow-hidden">
                 {/* Table */}
                 <div className="overflow-x-auto">
-                    <Table className="w-full table-fixed">
+                    <Table className="w-full">
                         <TableHeader>
-                            <TableRow className="bg-muted/50 hover:bg-muted/50 border-b border-border">
-                                <TableHead onClick={() => handleSort("id")} className="px-4 py-3 text-left align-middle text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors w-[100px]">
-                                    <div className="flex items-center gap-1">Asset ID {getSortIcon("id")}</div>
-                                </TableHead>
-                                <TableHead onClick={() => handleSort("desc")} className="px-4 py-3 text-left align-middle text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors w-[250px]">
-                                    <div className="flex items-center justify-start gap-1">Asset Name {getSortIcon("desc")}</div>
-                                </TableHead>
-                                <TableHead onClick={() => handleSort("cat")} className="px-4 py-3 text-left align-middle text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors w-[150px]">
-                                    <div className="flex items-center justify-start gap-1">Category {getSortIcon("cat")}</div>
-                                </TableHead>
-                                <TableHead onClick={() => handleSort("status")} className="px-4 py-3 text-left align-middle text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors w-[120px]">
-                                    <div className="flex items-center justify-start gap-1">Status {getSortIcon("status")}</div>
-                                </TableHead>
-                                <TableHead onClick={() => handleSort("room")} className="px-4 py-3 text-left align-middle text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors w-[120px]">
-                                    <div className="flex items-center justify-start gap-1">Room {getSortIcon("room")}</div>
-                                </TableHead>
-                                <CurrencyHeader 
-                                    className="w-[120px]"
-                                    sortKey="value"
-                                    sortedBy={sortConfig?.key}
-                                    sortDirection={sortConfig?.direction}
-                                    onClick={() => handleSort("value")}
-                                >
-                                    Value
-                                </CurrencyHeader>
-                                <TableHead className="px-4 py-3 text-center align-middle text-xs font-medium text-muted-foreground w-[80px]">QR</TableHead>
-                                <TableHead className="px-4 py-3 text-center align-middle text-xs font-medium text-muted-foreground w-[80px]">{showArchived ? "Restore" : "Archive"}</TableHead>
-                            </TableRow>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <TableRow key={headerGroup.id} className="bg-muted/50 hover:bg-muted/50">
+                                    {headerGroup.headers.map((header) => (
+                                        <TableHead key={header.id}>
+                                            {header.isPlaceholder
+                                                ? null
+                                                : flexRender(header.column.columnDef.header, header.getContext())}
+                                        </TableHead>
+                                    ))}
+                                </TableRow>
+                            ))}
                         </TableHeader>
                         <TableBody>
-                            {paginatedAssets.length === 0 ? (
+                            {table.getRowModel().rows?.length ? (
+                                table.getRowModel().rows.map((row) => (
+                                    <TableRow
+                                        key={row.id}
+                                        className="cursor-pointer hover:bg-muted/5 transition-colors"
+                                        onClick={() => onAssetClick?.(row.original)}
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            ) : (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground text-sm">
+                                    <TableCell
+                                        colSpan={columns.length}
+                                        className="h-24 text-center text-muted-foreground text-sm"
+                                    >
                                         {showArchived ? "No archived assets yet" : "No assets match your search"}
                                     </TableCell>
                                 </TableRow>
-                            ) : (
-                                paginatedAssets.map((asset) => (
-                                <TableRow
-                                    key={asset.id}
-                                    className="cursor-pointer hover:bg-muted/5 transition-colors border-b border-border last:border-0"
-                                    onClick={() => onAssetClick?.(asset)}
-                                >
-                                    <TableCell className="px-4 py-3 align-middle font-mono text-xs font-normal text-muted-foreground text-left">{asset.id}</TableCell>
-                                    <TableCell className="px-4 py-3 align-middle text-sm text-foreground font-normal text-left">{asset.desc}</TableCell>
-                                    <TableCell className="px-4 py-3 align-middle text-sm text-muted-foreground text-left">{asset.cat}</TableCell>
-                                    <TableCell className="px-4 py-3 align-middle text-left">
-                                        <span className={`${statusColors[asset.status]} text-sm font-normal whitespace-nowrap inline-flex`}>
-                                            {asset.status}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="px-4 py-3 align-middle text-sm text-muted-foreground text-left">{asset.room}</TableCell>
-                                    <TableCell className="px-4 py-3 align-middle text-sm font-normal text-foreground">
-                                        <CurrencyCell value={asset.value} />
-                                    </TableCell>
-                                    <TableCell className="px-4 py-3 align-middle text-center">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedAssetForQR(asset);
-                                            }}
-                                            className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors inline-flex items-center justify-center"
-                                        >
-                                            <QrCode size={16} />
-                                        </button>
-                                    </TableCell>
-                                    <TableCell className="px-4 py-3 align-middle text-center">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (asset.status === 'Archived') {
-                                                    restoreAssetMutation.mutate(asset.id);
-                                                } else {
-                                                    archiveAssetMutation.mutate(asset.id);
-                                                }
-                                            }}
-                                            className={`p-1.5 rounded-md transition-colors inline-flex items-center justify-center ${asset.status === 'Archived' ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'}`}
-                                            title={asset.status === 'Archived' ? 'Restore' : 'Archive'}
-                                        >
-                                            {asset.status === 'Archived' ? <RotateCcw size={16} /> : <Archive size={16} />}
-                                        </button>
-                                    </TableCell>
-                                </TableRow>
-                            ))
                             )}
                         </TableBody>
                     </Table>
                 </div>
 
                 {/* Pagination Footer */}
-                <div className="p-4 border-t border-border flex items-center justify-between bg-muted/20">
-                    <div className="text-xs text-muted-foreground font-normal">
-                        Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, sortedAssets.length)} of {sortedAssets.length}
+                <div className="px-4 py-3 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/20">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span>
+                            {table.getFilteredRowModel().rows.length === 0
+                                ? "No results"
+                                : `${table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}–${Math.min(
+                                      (table.getState().pagination.pageIndex + 1) *
+                                          table.getState().pagination.pageSize,
+                                      table.getFilteredRowModel().rows.length,
+                                  )} of ${table.getFilteredRowModel().rows.length}`}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                            <span>Rows:</span>
+                            <Select
+                                value={String(table.getState().pagination.pageSize)}
+                                onValueChange={(v) => table.setPageSize(Number(v))}
+                            >
+                                <SelectTrigger className="h-7 w-[62px] text-xs">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {[5, 10, 20, 50].map((s) => (
+                                        <SelectItem key={s} value={String(s)} className="text-xs">
+                                            {s}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-10 text-sm font-medium"
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
-                        >
-                            Previous
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground">
+                            Page {table.getState().pagination.pageIndex + 1} of{" "}
+                            {table.getPageCount() || 1}
+                        </span>
+                        <Input
+                            placeholder="Go to"
+                            value={pageInput}
+                            onChange={(e) => setPageInput(e.target.value)}
+                            onKeyDown={handlePageInputSubmit}
+                            className="h-7 w-16 text-xs text-center"
+                            aria-label="Go to page"
+                        />
+                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} aria-label="First page">
+                            <ChevronsLeft className="h-3.5 w-3.5" />
                         </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-10 text-sm font-medium"
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            disabled={currentPage === totalPages}
-                        >
-                            Next
+                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} aria-label="Previous page">
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} aria-label="Next page">
+                            <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} aria-label="Last page">
+                            <ChevronsRight className="h-3.5 w-3.5" />
                         </Button>
                     </div>
                 </div>

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserPlus, Mail, Phone, Shield, Lock, Building2, Save } from "lucide-react";
+import { Building2, Save, Shield } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner"; // Assuming sonner is used for toasts, if not I'll just remove or add a basic alert
+import { toast } from "sonner";
+import api from "@/lib/api";
 
 interface TenantDto {
     id: number;
@@ -46,19 +47,14 @@ export function EditTenantModal({ open, onOpenChange, tenant, onSave }: EditTena
 
         setIsLoading(true);
         try {
-            // Include API call here if needed, or just callback
-            // For now, simulate API call success and callback
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // In a real app, you would PATCH/PUT to the backend here
-            // const res = await fetch(`.../api/tenants/${tenant.id}`, { method: 'PUT', body: JSON.stringify(formData) });
-            
+            if (formData.status && formData.status !== tenant.status) {
+                await api.put(`/api/tenants/${tenant.id}/status`, { status: formData.status });
+            }
             onSave(formData as TenantDto);
             onOpenChange(false);
-            // toast.success("Tenant updated successfully");
-        } catch (error) {
-            console.error("Failed to update tenant", error);
-            // toast.error("Failed to update tenant");
+            toast.success("Tenant updated successfully");
+        } catch {
+            toast.error("Failed to update tenant");
         } finally {
             setIsLoading(false);
         }

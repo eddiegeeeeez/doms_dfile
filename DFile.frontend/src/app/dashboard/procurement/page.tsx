@@ -1,10 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { ProcurementView } from "@/components/procurement-view";
-import { AcquisitionModal } from "@/components/modals/acquisition-modal";
-import { OrderDetailsModal } from "@/components/modals/order-details-modal";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 import { PurchaseOrder, Asset } from "@/types/asset";
+
+const ProcurementView = dynamic(() => import("@/components/procurement-view").then(m => ({ default: m.ProcurementView })), {
+    loading: () => <Card className="p-5"><Skeleton className="h-64 w-full" /></Card>,
+});
+const AcquisitionModal = dynamic(() => import("@/components/modals/acquisition-modal").then(m => ({ default: m.AcquisitionModal })));
+const OrderDetailsModal = dynamic(() => import("@/components/modals/order-details-modal").then(m => ({ default: m.OrderDetailsModal })));
 
 export default function ProcurementPage() {
     const [isAcquisitionModalOpen, setIsAcquisitionModalOpen] = useState(false);

@@ -78,7 +78,7 @@ export function RegistrationView({ onRegister, onManageCategories, onAssetClick 
                                             <div className="space-y-2">
                                                 <Label htmlFor="asset-select">Select Asset to Tag</Label>
                                                 <Select value={selectedAssetId} onValueChange={setSelectedAssetId}>
-                                                    <SelectTrigger id="asset-select" className="h-10 text-sm">
+                                                    <SelectTrigger id="asset-select" className="h-9 text-sm">
                                                         <SelectValue placeholder="Search or select an asset..." />
                                                     </SelectTrigger>
                                                     <SelectContent className="max-h-[300px]">
@@ -127,7 +127,7 @@ export function RegistrationView({ onRegister, onManageCategories, onAssetClick 
                                     <CardContent className="p-6 flex-1 flex flex-col items-center justify-center text-center space-y-6">
                                         {selectedAsset ? (
                                             <>
-                                                <div className="bg-white p-4  border shadow-sm">
+                                                <div className="bg-card p-4 border border-border shadow-sm">
                                                     <QRCodeSVG
                                                         value={JSON.stringify({ id: selectedAsset.id, name: selectedAsset.desc })}
                                                         size={160}

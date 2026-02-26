@@ -4,9 +4,6 @@ import api from '@/lib/api';
 import { Asset } from '@/types/asset';
 import { toast } from 'sonner';
 
-// In-memory store for session (REMOVED - CONNECTED TO API)
-// let MOCK_ASSETS: Asset[] = ...
-
 export function useAssets(showArchived?: boolean) {
     return useQuery({
         queryKey: ['assets', showArchived ?? 'all'],
@@ -44,8 +41,7 @@ export function useAddAsset() {
             queryClient.invalidateQueries({ queryKey: ['assets'] });
             toast.success('Asset added successfully');
         },
-        onError: (error) => {
-            console.error('Failed to add asset:', error);
+        onError: () => {
             toast.error('Failed to add asset');
         },
     });
@@ -64,8 +60,7 @@ export function useUpdateAsset() {
             queryClient.invalidateQueries({ queryKey: ['assets', variables.id] });
             toast.success('Asset updated successfully');
         },
-        onError: (error) => {
-            console.error('Failed to update asset:', error);
+        onError: () => {
             toast.error('Failed to update asset');
         },
     });
@@ -82,8 +77,7 @@ export function useArchiveAsset() {
             queryClient.invalidateQueries({ queryKey: ['assets'] });
             toast.success('Asset archived successfully');
         },
-        onError: (error) => {
-            console.error('Failed to archive asset:', error);
+        onError: () => {
             toast.error('Failed to archive asset');
         },
     });
@@ -100,8 +94,7 @@ export function useRestoreAsset() {
             queryClient.invalidateQueries({ queryKey: ['assets'] });
             toast.success('Asset restored successfully');
         },
-        onError: (error) => {
-            console.error('Failed to restore asset:', error);
+        onError: () => {
             toast.error('Failed to restore asset');
         },
     });
@@ -123,8 +116,7 @@ export function useAllocateAsset() {
              queryClient.invalidateQueries({ queryKey: ['assets'] });
              toast.success('Asset allocated successfully');
         },
-        onError: (error) => {
-             console.error('Failed to allocate asset:', error);
+        onError: () => {
              toast.error('Failed to allocate asset');
         },
     });

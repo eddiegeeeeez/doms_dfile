@@ -4,7 +4,6 @@ import { getApiBaseUrl } from '@/lib/api-base-url';
 
 // Create a centralized Axios instance
 const baseURL = getApiBaseUrl();
-console.log('API Base URL:', baseURL || "Using relative path (backend and frontend on same origin)");
 
 const api = axios.create({
     baseURL: baseURL, // Empty string means relative paths (same origin)
@@ -27,16 +26,10 @@ api.interceptors.request.use(
     }
 );
 
-// Response Interceptor: Handle Global Errors (like 401)
+// Response Interceptor: Handle Global Errors
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        // Optional: Handle 401 Unauthorized globally (e.g., redirect to login)
-        // For now, we just pass it through so components can handle it or queries can retry
-        if (error.response?.status === 401) {
-            // You could dispatch a logout event here if you wanted strict sessions
-            // window.location.href = '/login'; 
-        }
         return Promise.reject(error);
     }
 );

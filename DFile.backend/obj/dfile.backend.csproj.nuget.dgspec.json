@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Fhiona Domini\\source\\repos\\DFile\\DFile.backend\\dfile.backend.csproj": {}
+    "C:\\Programming Files\\PAM IT13\\dfile_dev\\DFile.backend\\dfile.backend.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Fhiona Domini\\source\\repos\\DFile\\DFile.backend\\dfile.backend.csproj": {
+    "C:\\Programming Files\\PAM IT13\\dfile_dev\\DFile.backend\\dfile.backend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Fhiona Domini\\source\\repos\\DFile\\DFile.backend\\dfile.backend.csproj",
+        "projectUniqueName": "C:\\Programming Files\\PAM IT13\\dfile_dev\\DFile.backend\\dfile.backend.csproj",
         "projectName": "dfile.backend",
-        "projectPath": "C:\\Users\\Fhiona Domini\\source\\repos\\DFile\\DFile.backend\\dfile.backend.csproj",
-        "packagesPath": "C:\\Users\\Fhiona Domini\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Fhiona Domini\\source\\repos\\DFile\\DFile.backend\\obj\\",
+        "projectPath": "C:\\Programming Files\\PAM IT13\\dfile_dev\\DFile.backend\\dfile.backend.csproj",
+        "packagesPath": "C:\\Users\\mendo\\.nuget\\packages\\",
+        "outputPath": "C:\\Programming Files\\PAM IT13\\dfile_dev\\DFile.backend\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Fhiona Domini\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\mendo\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -45,7 +45,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "9.0.300"
       },
       "frameworks": {
         "net8.0": {
@@ -117,7 +117,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.305/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

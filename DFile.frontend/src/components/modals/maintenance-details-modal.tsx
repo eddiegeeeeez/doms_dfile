@@ -18,16 +18,16 @@ interface MaintenanceDetailsModalProps {
     onRequestReplacement?: (assetId: string) => void;
 }
 
-const statusColor: Record<string, string> = {
-    "Pending": "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-    "In Progress": "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400",
-    "Completed": "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+const statusVariant: Record<string, "warning" | "info" | "success" | "muted"> = {
+    Pending: "warning",
+    "In Progress": "info",
+    Completed: "success",
 };
 
-const priorityColor: Record<string, string> = {
-    Low: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
-    Medium: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-    High: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+const priorityVariant: Record<string, "success" | "warning" | "danger"> = {
+    Low: "success",
+    Medium: "warning",
+    High: "danger",
 };
 
 export function MaintenanceDetailsModal({ open, onOpenChange, record, onEdit, onRequestReplacement }: MaintenanceDetailsModalProps) {
@@ -50,8 +50,8 @@ export function MaintenanceDetailsModal({ open, onOpenChange, record, onEdit, on
                             <DialogTitle className="text-lg font-semibold text-foreground">Maintenance Request</DialogTitle>
                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                                 <Badge variant="secondary" className="font-mono text-xs">{record.id}</Badge>
-                                <Badge className={`text-xs ${statusColor[record.status] || ""}`}>{record.status}</Badge>
-                                <Badge className={`text-xs ${priorityColor[record.priority] || ""}`}>{record.priority} Priority</Badge>
+                                <Badge variant={statusVariant[record.status] ?? "muted"} className="text-xs">{record.status}</Badge>
+                                <Badge variant={priorityVariant[record.priority] ?? "muted"} className="text-xs">{record.priority} Priority</Badge>
                             </div>
                         </div>
                     </div>

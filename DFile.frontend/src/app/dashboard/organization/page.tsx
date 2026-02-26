@@ -1,10 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { RolesDashboard } from "@/components/roles-dashboard";
-import { CreateRoleModal } from "@/components/modals/create-role-modal";
-import { AddEmployeeModal } from "@/components/modals/add-employee-modal";
-import { EmployeeDetailsModal } from "@/components/modals/employee-details-modal";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
+
+const RolesDashboard = dynamic(() => import("@/components/roles-dashboard").then(m => ({ default: m.RolesDashboard })), {
+    loading: () => <Card className="p-5"><Skeleton className="h-64 w-full" /></Card>,
+});
+const CreateRoleModal = dynamic(() => import("@/components/modals/create-role-modal").then(m => ({ default: m.CreateRoleModal })));
+const AddEmployeeModal = dynamic(() => import("@/components/modals/add-employee-modal").then(m => ({ default: m.AddEmployeeModal })));
+const EmployeeDetailsModal = dynamic(() => import("@/components/modals/employee-details-modal").then(m => ({ default: m.EmployeeDetailsModal })));
 import { useRoles, useEmployees, useDepartments, useAddRole, useAddEmployee, useArchiveEmployee, useUpdateEmployee } from "@/hooks/use-organization";
 import { useAuth } from "@/contexts/auth-context";
 import { Employee } from "@/types/asset";

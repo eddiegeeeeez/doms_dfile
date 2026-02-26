@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ShoppingCart, Clock, CheckCircle2, DollarSign, Plus, Package, Archive, RotateCcw, Search, Filter, Calendar as CalendarIcon, PhilippinePeso } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { StatCard, StatCardSkeleton } from "@/components/ui/stat-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CurrencyCell } from "@/components/ui/currency-cell";
 import { CurrencyHeader } from "@/components/ui/currency-header";
@@ -80,11 +81,11 @@ export function ProcurementView({ onNewOrder, onOrderClick }: ProcurementViewPro
     const approvedOrders = orders.filter(o => o.status === "Approved" || o.status === "Delivered").length;
     const totalSpend = orders.reduce((sum, o) => sum + o.purchasePrice, 0);
 
-    const statusColor: Record<string, string> = {
-        Pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-        Approved: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-        Delivered: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
-        Cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    const statusVariant: Record<string, "warning" | "info" | "success" | "danger" | "muted"> = {
+        Pending: "warning",
+        Approved: "info",
+        Delivered: "success",
+        Cancelled: "danger",
     };
 
     const summaryCards = [
@@ -99,9 +100,7 @@ export function ProcurementView({ onNewOrder, onOrderClick }: ProcurementViewPro
             <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="bg-card  border border-border p-4 shadow-sm h-24">
-                            <Skeleton className="h-full w-full" />
-                        </div>
+                        <StatCardSkeleton key={i} />
                     ))}
                 </div>
                 <div className=" border border-border p-6 space-y-4">
@@ -123,20 +122,12 @@ export function ProcurementView({ onNewOrder, onOrderClick }: ProcurementViewPro
             {/* Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {summaryCards.map((stat, i) => (
-                    <div key={i} className="bg-card  border border-border p-4 shadow-sm flex items-center justify-between">
-                         <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                         <div className="flex items-center gap-2">
-                            <h3 className={`text-2xl font-bold ${stat.valueColor}`}>{stat.value}</h3>
-                            <div className={`h-10 w-10 rounded-full ${stat.iconBg} flex items-center justify-center ${stat.iconText}`}>
-                                <stat.icon size={20} />
-                            </div>
-                         </div>
-                    </div>
+                    <StatCard key={i} label={stat.label} value={stat.value} icon={stat.icon} valueClassName={stat.valueColor} iconClassName={`${stat.iconBg} ${stat.iconText}`} />
                 ))}
             </div>
 
             {/* Search and Filters Toolbar */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-background p-1 rounded-lg">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
                 <div className="flex flex-1 gap-2 w-full sm:w-auto">
                     <div className="relative flex-1 max-w-sm">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -144,11 +135,11 @@ export function ProcurementView({ onNewOrder, onOrderClick }: ProcurementViewPro
                             placeholder="Search orders..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-10 bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="pl-9 h-9 text-sm"
                         />
                     </div>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[180px] h-10 bg-background text-sm">
+                        <SelectTrigger className="w-[160px] h-9 text-sm">
                             <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
@@ -163,7 +154,7 @@ export function ProcurementView({ onNewOrder, onOrderClick }: ProcurementViewPro
                     </Select>
 
                     <Select value={dateFilter} onValueChange={setDateFilter}>
-                        <SelectTrigger className="w-[180px] h-10 bg-background text-sm">
+                        <SelectTrigger className="w-[160px] h-9 text-sm">
                             <CalendarIcon className="w-4 h-4 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Period" />
                         </SelectTrigger>
@@ -188,12 +179,12 @@ export function ProcurementView({ onNewOrder, onOrderClick }: ProcurementViewPro
             </div>
 
             {/* Orders Table */}
-            <Card className="border-border shadow-sm  overflow-hidden">
+            <Card className="overflow-hidden">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <Table className="w-full table-fixed">
                             <TableHeader className="bg-muted/50">
-                                <TableRow className="hover:bg-muted/50 border-border">
+                                <TableRow className="hover:bg-muted/50">
                                     <TableHead className="px-6 py-4 text-left align-middle text-xs font-medium text-muted-foreground w-[100px]">Order ID</TableHead>
                                     <TableHead className="px-6 py-4 text-left align-middle text-xs font-medium text-muted-foreground w-[20%]">Asset</TableHead>
                                     <TableHead className="px-6 py-4 text-left align-middle text-xs font-medium text-muted-foreground w-[15%]">Category</TableHead>
@@ -215,7 +206,7 @@ export function ProcurementView({ onNewOrder, onOrderClick }: ProcurementViewPro
                                     </TableRow>
                                 ) : (
                                     filteredOrders.map((order) => (
-                                        <TableRow key={order.id} className="border-border hover:bg-muted/5 transition-colors cursor-pointer border-b last:border-0" onClick={() => onOrderClick?.(order)}>
+                                        <TableRow key={order.id} className="hover:bg-muted/5 transition-colors cursor-pointer" onClick={() => onOrderClick?.(order)}>
                                             <TableCell className="px-6 py-4 align-middle font-mono text-xs text-muted-foreground text-left">{order.id}</TableCell>
                                             <TableCell className="px-6 py-4 align-middle text-left">
                                                 <div className="flex flex-col">
@@ -235,14 +226,7 @@ export function ProcurementView({ onNewOrder, onOrderClick }: ProcurementViewPro
                                             <TableCell className="px-6 py-4 align-middle text-center text-sm text-muted-foreground">{order.purchaseDate}</TableCell>
                                             <TableCell className="px-6 py-4 align-middle text-center text-sm text-muted-foreground">{order.usefulLifeYears} yrs</TableCell>
                                             <TableCell className="px-6 py-4 align-middle text-center">
-                                                <span className={`text-sm font-normal inline-flex ${
-                                                    order.status === "Approved" ? "text-blue-700" :
-                                                    order.status === "Delivered" ? "text-emerald-700" :
-                                                    order.status === "Pending" ? "text-amber-700" :
-                                                    "text-red-700"
-                                                }`}>
-                                                    {order.status}
-                                                </span>
+                                                <Badge variant={statusVariant[order.status] ?? "muted"}>{order.status}</Badge>
                                             </TableCell>
                                             <TableCell className="px-6 py-4 align-middle text-left font-mono text-xs text-muted-foreground">
                                                 {order.assetId || "—"}

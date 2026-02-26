@@ -40,8 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     await api.get('/api/auth/me');
 
                     // If we reach here, the token is valid (status 200-299)
-                } catch (e) {
-                    console.error("Failed to restore session", e);
+                } catch {
                     logout();
                 }
             }
@@ -53,12 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const login = async (email: string, password: string) => {
         try {
-            console.log(`[Auth] Initiating login via API client`);
-
             const response = await api.post('/api/auth/login', { email, password });
-            
-            console.log(`[Auth] Response status: ${response.status} ${response.statusText}`);
-
             const data = response.data;
             const userData = data.user;
             const token = data.token;
@@ -71,7 +65,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error: any) {
             // Handle Axios error structure
             const message = error.response?.data?.message || error.message || "Login failed";
-            console.error(`[Auth] Login error: ${message}`);
             throw new Error(message);
         }
     };

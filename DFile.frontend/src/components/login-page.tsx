@@ -59,7 +59,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 </div>
 
                 {/* Right Panel: Form */}
-                <div className="relative flex items-center justify-center bg-white p-6 dark:bg-zinc-950 md:p-10">
+                <div className="relative flex items-center justify-center bg-background p-6 md:p-10">
                     {/* subtle background */}
                     <div className="pointer-events-none absolute inset-0 overflow-hidden">
                         <div className="absolute -top-[20%] -right-[10%] h-[500px] w-[500px] rounded-full bg-blue-50/50 blur-[100px]" />
@@ -69,21 +69,21 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     <div className="relative w-full max-w-sm">
                         {/* Mobile header (since left panel is hidden on mobile) */}
                         <div className="mb-8 flex items-center gap-3 lg:hidden">
-                            <div className="grid h-10 w-10 place-items-center  bg-[#182350] text-white shadow-lg shadow-[#182350]/20">
+                            <div className="grid h-10 w-10 place-items-center bg-primary text-primary-foreground shadow-lg shadow-primary/20">
                                 <span className="font-black tracking-tight">D</span>
                             </div>
                             <div className="flex flex-col leading-tight">
-                                <span className="text-lg font-semibold text-[#182350] dark:text-white">
+                                <span className="text-lg font-semibold text-primary dark:text-foreground">
                                     DFile
                                 </span>
-                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                <span className="text-xs text-muted-foreground">
                                     Sign in to continue
                                 </span>
                             </div>
                         </div>
 
                         {/* Form card shell */}
-                        <div className="relative z-20 rounded-[2.5rem] border border-slate-200/60 bg-white/80 p-8 shadow-[0_30px_80px_rgba(0,0,0,0.1)] backdrop-blur-md dark:border-white/10 dark:bg-zinc-950/50 md:p-10">
+                        <div className="relative z-20 rounded-[2.5rem] border border-border bg-card/80 p-8 shadow-[0_30px_80px_rgba(0,0,0,0.08)] backdrop-blur-md md:p-10">
                             <LoginForm onLogin={onLogin} />
                         </div>
                     </div>

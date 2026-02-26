@@ -1,12 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { MaintenanceOperations } from "@/components/maintenance-operations";
-import { CreateMaintenanceModal } from "@/components/modals/create-maintenance-modal";
-import { MaintenanceDetailsModal } from "@/components/modals/maintenance-details-modal";
-import { AcquisitionModal } from "@/components/modals/acquisition-modal";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 import { useAssets } from "@/hooks/use-assets";
 import { MaintenanceRecord, Asset } from "@/types/asset";
+
+const MaintenanceOperations = dynamic(() => import("@/components/maintenance-operations").then(m => ({ default: m.MaintenanceOperations })), {
+    loading: () => <Card className="p-5"><Skeleton className="h-64 w-full" /></Card>,
+});
+const CreateMaintenanceModal = dynamic(() => import("@/components/modals/create-maintenance-modal").then(m => ({ default: m.CreateMaintenanceModal })));
+const MaintenanceDetailsModal = dynamic(() => import("@/components/modals/maintenance-details-modal").then(m => ({ default: m.MaintenanceDetailsModal })));
+const AcquisitionModal = dynamic(() => import("@/components/modals/acquisition-modal").then(m => ({ default: m.AcquisitionModal })));
 
 export default function MaintenancePage() {
     const { data: assets = [] } = useAssets();

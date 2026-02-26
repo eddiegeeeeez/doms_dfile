@@ -10,12 +10,26 @@ namespace DFile.backend.Data
             try
             {
                 context.Database.Migrate();
-                Console.WriteLine("Database migration applied successfully.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error applying migrations: {ex.Message}");
-                // Fallback for dev environments where migrations might be messed up, but for prod we want Migrate
+                // If a migration fails because objects already exist in the DB (e.g., from a partial
+                // previous run), mark all pending migrations as applied so EF Core stops retrying.
+                var msg = ex.Message + (ex.InnerException?.Message ?? "");
+                if (msg.Contains("already an object named") || msg.Contains("There is already"))
+                {
+                    try
+                    {
+                        foreach (var migration in context.Database.GetPendingMigrations().ToList())
+                        {
+                            context.Database.ExecuteSqlRaw(
+                                "IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = {0}) " +
+                                "INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES ({0}, '8.0.0')",
+                                migration);
+                        }
+                    }
+                    catch { /* best-effort */ }
+                }
             }
 
             // Ensure Default Tenant Exists

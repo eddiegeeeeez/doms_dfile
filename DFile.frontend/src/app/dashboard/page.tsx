@@ -1,19 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { AssetStats } from "@/components/asset-stats";
-import { AssetTable } from "@/components/asset-table";
-import { AssetDetailsModal } from "@/components/modals/asset-details-modal";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/contexts/auth-context";
 import { Asset } from "@/types/asset";
-import { MaintenanceView } from "@/components/maintenance-view";
-import { ProcurementView } from "@/components/procurement-view";
-import { DepreciationView } from "@/components/depreciation-view";
-import { CreateMaintenanceModal } from "@/components/modals/create-maintenance-modal";
-import { FinanceDashboard } from "@/components/finance-dashboard";
-import { AcquisitionModal } from "@/components/modals/acquisition-modal";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PieChart, TrendingDown, FileBadge } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
+
+const AssetStats = dynamic(() => import("@/components/asset-stats").then(m => ({ default: m.AssetStats })), {
+    loading: () => <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <Card key={i} className="p-5"><Skeleton className="h-16 w-full" /></Card>)}</div>,
+});
+const AssetTable = dynamic(() => import("@/components/asset-table").then(m => ({ default: m.AssetTable })), {
+    loading: () => <Card className="p-5"><Skeleton className="h-64 w-full" /></Card>,
+});
+const AssetDetailsModal = dynamic(() => import("@/components/modals/asset-details-modal").then(m => ({ default: m.AssetDetailsModal })));
+const MaintenanceView = dynamic(() => import("@/components/maintenance-view").then(m => ({ default: m.MaintenanceView })), {
+    loading: () => <Card className="p-5"><Skeleton className="h-64 w-full" /></Card>,
+});
+const ProcurementView = dynamic(() => import("@/components/procurement-view").then(m => ({ default: m.ProcurementView })), {
+    loading: () => <Card className="p-5"><Skeleton className="h-64 w-full" /></Card>,
+});
+const FinanceDashboard = dynamic(() => import("@/components/finance-dashboard").then(m => ({ default: m.FinanceDashboard })), {
+    loading: () => <Card className="p-5"><Skeleton className="h-64 w-full" /></Card>,
+});
+const AcquisitionModal = dynamic(() => import("@/components/modals/acquisition-modal").then(m => ({ default: m.AcquisitionModal })));
 
 export default function DashboardPage() {
     const { user } = useAuth();

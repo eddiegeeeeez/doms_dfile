@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMaintenanceRecords, useUpdateMaintenanceStatus, useArchiveMaintenanceRecord, useAddMaintenanceRecord } from "@/hooks/use-maintenance";
 import { useAssets } from "@/hooks/use-assets";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatCardSkeleton } from "@/components/ui/stat-card";
 import { CreateMaintenanceModal } from "@/components/modals/create-maintenance-modal";
 
 interface MaintenanceViewProps {
@@ -54,13 +55,7 @@ export function MaintenanceView({ onScheduleMaintenance, onRequestReplacement }:
             <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="bg-card  border border-border p-4 shadow-sm flex items-center justify-between">
-                            <div className="space-y-2">
-                                <Skeleton className="h-4 w-24" />
-                                <Skeleton className="h-8 w-12" />
-                            </div>
-                            <Skeleton className="h-10 w-10 rounded-full" />
-                        </div>
+                        <StatCardSkeleton key={i} />
                     ))}
                 </div>
                 <div className=" border border-border overflow-hidden bg-card p-6 space-y-4">
@@ -146,26 +141,10 @@ export function MaintenanceView({ onScheduleMaintenance, onRequestReplacement }:
 
     const activeRecords = records.filter(r => !r.archived);
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case "Pending":
-                return "text-amber-700 border-amber-500/20";
-            case "In Progress":
-                return "text-blue-700 border-blue-500/20";
-            case "Completed":
-                return "text-emerald-700 border-emerald-500/20";
-            default:
-                return "text-muted-foreground border-border";
-        }
-    };
-
-    const getPriorityColor = (priority: string) => {
-        switch (priority) {
-            case "High": return "text-red-600 font-bold";
-            case "Medium": return "text-amber-600 font-medium";
-            case "Low": return "text-emerald-600";
-            default: return "text-muted-foreground";
-        }
+    const statusVariant: Record<string, "warning" | "info" | "success" | "muted"> = {
+        Pending: "warning",
+        "In Progress": "info",
+        Completed: "success",
     };
 
 
@@ -247,7 +226,7 @@ export function MaintenanceView({ onScheduleMaintenance, onRequestReplacement }:
             </div>
 
             {/* Action Toolbar */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-background p-1 rounded-lg">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
                 <div className="flex flex-1 gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 items-center">
                     <div className="relative flex-1 max-w-sm min-w-[200px]">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -255,7 +234,7 @@ export function MaintenanceView({ onScheduleMaintenance, onRequestReplacement }:
                             placeholder="Search requests or assets..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-10 bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="pl-9 h-9 text-sm"
                         />
                     </div>
                     
@@ -321,13 +300,13 @@ export function MaintenanceView({ onScheduleMaintenance, onRequestReplacement }:
             </div>
 
             {/* Main Content Card */}
-            <Card className="border-border shadow-sm  overflow-hidden">
+            <Card className="overflow-hidden">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
 
                     <Table className="w-full table-fixed">
                         <TableHeader>
-                            <TableRow className="bg-muted/50 hover:bg-muted/50 border-b border-border">
+                            <TableRow className="bg-muted/50 hover:bg-muted/50">
                                         <TableHead className="w-[100px] px-4 py-3 text-left align-middle font-medium text-muted-foreground">ID</TableHead>
                                         <TableHead className="px-4 py-3 text-left align-middle font-medium text-muted-foreground">Asset / Description</TableHead>
                                         <TableHead className="text-center w-[100px] px-4 py-3 align-middle font-medium text-muted-foreground">Status</TableHead>
@@ -349,11 +328,8 @@ export function MaintenanceView({ onScheduleMaintenance, onRequestReplacement }:
                                         filteredRecords.map((record) => (
                                             <TableRow 
                                                 key={record.id} 
-                                                className="cursor-pointer hover:bg-muted/5 transition-colors group border-b border-border/40 last:border-0"
-                                                onClick={() => {
-                                                    // TODO: Open details modal
-                                                    // This needs callback prop
-                                                }}
+                                                className="cursor-pointer hover:bg-muted/5 transition-colors group"
+                                                onClick={() => {}}
                                             >
                                                 <TableCell className="px-4 py-3 align-middle font-mono text-[11px] text-muted-foreground text-left font-medium group-hover:text-primary transition-colors">
                                                     {record.id}
@@ -365,9 +341,7 @@ export function MaintenanceView({ onScheduleMaintenance, onRequestReplacement }:
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="px-4 py-3 align-middle text-center">
-                                                     <Badge variant="outline" className={`text-[10px] px-2 py-0.5 h-5 font-medium border rounded-none bg-transparent inline-flex ${getStatusColor(record.status)}`}>
-                                                        {record.status}
-                                                    </Badge>
+                                                    <Badge variant={statusVariant[record.status] ?? "muted"}>{record.status}</Badge>
                                                 </TableCell>
                                                 <TableCell className="px-4 py-3 align-middle text-center">
                                                     <div className={`inline-flex items-center justify-center w-6 h-6 rounded-md text-[11px] font-medium border ${

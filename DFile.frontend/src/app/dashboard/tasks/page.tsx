@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, User, Clock, CheckCircle2, Circle, AlertCircle, Search, Filter, Archive, RotateCcw, Layout, ListTodo } from "lucide-react";
+import { Plus, Calendar, User, Clock, CheckCircle2, Circle, Search, Filter, Archive, RotateCcw, ListTodo } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -62,20 +62,17 @@ export default function TasksPage() {
         await updateTaskMutation.mutateAsync({ ...task, status: newStatus });
     };
 
-    const getPriorityColor = (priority: string) => {
-        switch (priority) {
-            case "High": return "text-red-500 bg-red-100 dark:bg-red-900/30";
-            case "Medium": return "text-amber-500 bg-amber-100 dark:bg-amber-900/30";
-            case "Low": return "text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30";
-            default: return "text-slate-500 bg-slate-100";
-        }
+    const priorityVariant: Record<string, "danger" | "warning" | "success" | "muted"> = {
+        High: "danger",
+        Medium: "warning",
+        Low: "success",
     };
 
     const getStatusIcon = (status: string) => {
         switch (status) {
             case "Completed": return <CheckCircle2 size={16} className="text-emerald-500" />;
             case "In Progress": return <Clock size={16} className="text-blue-500" />;
-            default: return <Circle size={16} className="text-slate-400" />;
+            default: return <Circle size={16} className="text-muted-foreground" />;
         }
     };
 
@@ -225,7 +222,7 @@ export default function TasksPage() {
                                             }`} />
                                         <CardHeader className="pl-6 pb-1 pt-4">
                                             <div className="flex justify-between items-start">
-                                                <Badge variant="outline" className={`mb-1 border-0 text-xs ${getPriorityColor(task.priority)}`}>
+                                                <Badge variant={priorityVariant[task.priority] ?? "muted"} className="mb-1 text-xs">
                                                     {task.priority} Priority
                                                 </Badge>
                                                 <div className="flex gap-1">

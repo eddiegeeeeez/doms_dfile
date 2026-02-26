@@ -67,8 +67,8 @@ export default function InventoryPage() {
                         setIsAddModalOpen(false);
                         setIsEditMode(false);
                         setSelectedAsset(null);
-                    } catch (error) {
-                        console.error("Operation failed", error);
+                    } catch {
+                        // handled by mutation onError
                     }
                 }}
             />

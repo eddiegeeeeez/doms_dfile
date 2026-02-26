@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { RoomListView } from "@/components/room-list-view";
-import { RoomModal } from "@/components/modals/create-room-modal";
-import { ManageRoomCategoriesModal } from "@/components/modals/manage-room-categories-modal";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
+
+const RoomListView = dynamic(() => import("@/components/room-list-view").then(m => ({ default: m.RoomListView })), {
+    loading: () => <Card className="p-5"><Skeleton className="h-64 w-full" /></Card>,
+});
+const RoomModal = dynamic(() => import("@/components/modals/create-room-modal").then(m => ({ default: m.RoomModal })));
+const ManageRoomCategoriesModal = dynamic(() => import("@/components/modals/manage-room-categories-modal").then(m => ({ default: m.ManageRoomCategoriesModal })));
 import { useRooms, useRoomCategories, useAddRoom, useUpdateRoom, useArchiveRoom, useAddRoomCategory, useUpdateRoomCategory, useArchiveRoomCategory } from "@/hooks/use-rooms";
 import { Room } from "@/types/asset";
 

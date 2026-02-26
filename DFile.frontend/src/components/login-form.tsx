@@ -26,8 +26,7 @@ export function LoginForm({ className, onLogin, ...props }: LoginFormProps) {
     if (onLogin) {
       try {
         await onLogin(email, password);
-      } catch (err) {
-        // console.warn("Login failed (expected for invalid credentials)");
+      } catch {
         setError("Invalid email or password. Please try again.");
         setIsLoading(false);
       }
@@ -44,10 +43,10 @@ export function LoginForm({ className, onLogin, ...props }: LoginFormProps) {
           <img src="/AMS_dark.svg" alt="AMS Logo" className="h-16 w-auto hidden dark:block" />
         </div>
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#182350] dark:text-white">
+          <h2 className="text-3xl font-bold tracking-tight text-primary">
             Welcome back
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Sign in to manage assets with speed and clarity.
           </p>
         </div>
@@ -59,7 +58,7 @@ export function LoginForm({ className, onLogin, ...props }: LoginFormProps) {
           <div className="space-y-2 group">
             <Label
               htmlFor="email"
-              className="text-[11px] font-bold uppercase tracking-wider text-slate-400 group-focus-within:text-[#182350] transition-colors pl-1"
+              className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 group-focus-within:text-primary transition-colors pl-1"
             >
               Email Address
             </Label>
@@ -72,9 +71,9 @@ export function LoginForm({ className, onLogin, ...props }: LoginFormProps) {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-12 border-0 border-b-2 border-slate-100 bg-slate-50/50 hover:bg-slate-50/80 focus:bg-white rounded-t-lg px-4 focus-visible:ring-0 focus-visible:border-[#182350] transition-all placeholder:text-slate-300 shadow-sm"
+                className="h-12 border-0 border-b-2 border-border bg-muted/50 hover:bg-muted/80 focus:bg-background rounded-t-lg px-4 focus-visible:ring-0 focus-visible:border-primary transition-all placeholder:text-muted-foreground/40 shadow-sm"
               />
-              <div className="pointer-events-none absolute inset-x-0 -bottom-[2px] h-[2px] scale-x-0 bg-[#182350] transition-transform duration-300 group-focus-within:scale-x-100" />
+              <div className="pointer-events-none absolute inset-x-0 -bottom-[2px] h-[2px] scale-x-0 bg-primary transition-transform duration-300 group-focus-within:scale-x-100" />
             </div>
           </div>
 
@@ -82,7 +81,7 @@ export function LoginForm({ className, onLogin, ...props }: LoginFormProps) {
           <div className="space-y-2 group">
             <Label
               htmlFor="password"
-              className="text-[11px] font-bold uppercase tracking-wider text-slate-400 group-focus-within:text-[#182350] transition-colors pl-1"
+              className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 group-focus-within:text-primary transition-colors pl-1"
             >
               Password
             </Label>
@@ -93,19 +92,19 @@ export function LoginForm({ className, onLogin, ...props }: LoginFormProps) {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-12 border-0 border-b-2 border-slate-100 bg-slate-50/50 hover:bg-slate-50/80 focus:bg-white rounded-t-lg px-4 pr-12 focus-visible:ring-0 focus-visible:border-[#182350] transition-all shadow-sm"
+                className="h-12 border-0 border-b-2 border-border bg-muted/50 hover:bg-muted/80 focus:bg-background rounded-t-lg px-4 pr-12 focus-visible:ring-0 focus-visible:border-primary transition-all shadow-sm"
               />
 
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-400 hover:text-[#182350] hover:bg-slate-100 transition-colors"
+                className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
 
-              <div className="pointer-events-none absolute inset-x-0 -bottom-[2px] h-[2px] scale-x-0 bg-[#182350] transition-transform duration-300 group-focus-within:scale-x-100" />
+              <div className="pointer-events-none absolute inset-x-0 -bottom-[2px] h-[2px] scale-x-0 bg-primary transition-transform duration-300 group-focus-within:scale-x-100" />
             </div>
           </div>
         </div>
@@ -118,7 +117,7 @@ export function LoginForm({ className, onLogin, ...props }: LoginFormProps) {
         <div className="pt-4">
           <Button
             type="submit"
-            className="w-full h-12  bg-gradient-to-r from-[#182350] to-[#243575] text-white hover:to-[#182350] hover:shadow-lg hover:-translate-y-0.5 font-bold tracking-wide shadow-md shadow-[#182350]/20 transition-all duration-300 active:scale-[0.98]"
+            className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground hover:to-primary hover:shadow-lg hover:-translate-y-0.5 font-bold tracking-wide shadow-md shadow-primary/20 transition-all duration-300 active:scale-[0.98]"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -131,7 +130,7 @@ export function LoginForm({ className, onLogin, ...props }: LoginFormProps) {
             )}
           </Button>
 
-          <p className="mt-6 text-center text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500">
+          <p className="mt-6 text-center text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">
             Protected by DFile Security
           </p>
         </div>
