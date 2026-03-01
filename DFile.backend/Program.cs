@@ -62,7 +62,13 @@ var app = builder.Build();
 
 // 1. Static files FIRST — lets IIS/Kestrel short-circuit for .js/.css/etc.
 //    without passing through auth or CORS middleware on every asset request.
-//    Do NOT call UseDefaultFiles() — MapFallbackToFile handles the root redirect.
+//
+//    UseDefaultFiles() rewrites directory requests (e.g. /tenant/dashboard/)
+//    to /tenant/dashboard/index.html so UseStaticFiles() serves the correct
+//    per-page HTML from the Next.js static export — NOT the root index.html.
+//    Without this, every hard-refresh falls through to MapFallback and always
+//    serves the Home page, causing a visible redirect loop.
+app.UseDefaultFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
@@ -136,9 +142,43 @@ app.MapControllers();
 app.Map("/api/{**rest}", (HttpContext context) =>
     Results.NotFound(new { error = "API endpoint not found", path = context.Request.Path.Value }));
 
-// SPA fallback: serve index.html for all non-API, non-swagger, non-static routes
-// so that client-side routing (e.g. /dashboard, /login) works on hard-refresh.
-app.MapFallbackToFile("index.html");
+// SPA fallback: serve the correct per-page index.html for Next.js static export.
+// With trailingSlash:true, Next.js generates /tenant/dashboard/index.html etc.
+// UseDefaultFiles() handles the trailing-slash case (/tenant/dashboard/).
+// This fallback handles the non-trailing-slash case (/tenant/dashboard) and
+// truly unknown routes (falls back to root index.html for client-side routing).
+app.MapFallback(async (HttpContext context) =>
+{
+    var requestPath = context.Request.Path.Value?.TrimEnd('/') ?? "";
+    var webRoot = app.Environment.WebRootPath
+        ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+
+    // Try the route-specific index.html first (e.g. /tenant/dashboard → wwwroot/tenant/dashboard/index.html)
+    var pageIndex = Path.Combine(webRoot, requestPath.TrimStart('/'), "index.html");
+    if (File.Exists(pageIndex))
+    {
+        context.Response.ContentType = "text/html";
+        context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+        context.Response.Headers["Pragma"] = "no-cache";
+        context.Response.Headers["Expires"] = "0";
+        await context.Response.SendFileAsync(pageIndex);
+        return;
+    }
+
+    // Fallback to root index.html — unknown routes handled by client-side router
+    var rootIndex = Path.Combine(webRoot, "index.html");
+    if (File.Exists(rootIndex))
+    {
+        context.Response.ContentType = "text/html";
+        context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+        context.Response.Headers["Pragma"] = "no-cache";
+        context.Response.Headers["Expires"] = "0";
+        await context.Response.SendFileAsync(rootIndex);
+        return;
+    }
+
+    context.Response.StatusCode = 404;
+});
 
 // Seed Database in background — do NOT block app.Run().
 // Blocking startup here causes ANCM startup timeout on IIS hosted deployments.

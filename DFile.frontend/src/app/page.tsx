@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { getDashboardPath } from "@/lib/role-routing";
@@ -8,18 +8,17 @@ import { getDashboardPath } from "@/lib/role-routing";
 export default function Home() {
   const router = useRouter();
   const { isLoggedIn, isLoading, user } = useAuth();
+  const hasNavigatedRef = useRef(false);
 
   useEffect(() => {
-    if (!isLoading) {
-      if (isLoggedIn && user) {
-        router.push(getDashboardPath(user.role));
-      } else {
-        router.push("/login");
-      }
+    if (isLoading || hasNavigatedRef.current) return;
+    if (isLoggedIn && user) {
+      hasNavigatedRef.current = true;
+      router.push(getDashboardPath(user.role));
+    } else if (!isLoggedIn) {
+      hasNavigatedRef.current = true;
+      router.push("/login");
     }
-  // user is intentionally omitted: when isLoggedIn flips true, user is already
-  // set in the same React batch. Re-running on user reference changes (background
-  // /api/auth/me refresh) would double-push and cause the refresh loop.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, isLoading]);
 

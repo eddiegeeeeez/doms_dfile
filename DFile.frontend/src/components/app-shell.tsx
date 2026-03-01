@@ -277,8 +277,7 @@ export function AppShell({ children, navSections, requiredRoles, homePath }: App
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isLogoutOpen, setIsLogoutOpen] = useState(false);
-    // Prevent double-navigation in race conditions (e.g. stale localStorage
-    // role fires a redirect while the background /api/auth/me call is in-flight).
+    // Prevent double-navigation in race conditions.
     const isRedirectingRef = useRef(false);
 
     useEffect(() => {
@@ -286,18 +285,25 @@ export function AppShell({ children, navSections, requiredRoles, homePath }: App
         if (isRedirectingRef.current) return;
 
         if (!isLoggedIn) {
-            isRedirectingRef.current = true;
-            router.push("/login");
+            // Only push if we aren't already on /login
+            if (!pathname.startsWith("/login")) {
+                isRedirectingRef.current = true;
+                router.push("/login");
+            }
             return;
         }
         if (user && !requiredRoles.includes(user.role)) {
-            isRedirectingRef.current = true;
-            router.replace(getDashboardPath(user.role));
+            const dest = getDashboardPath(user.role);
+            if (dest !== "/login" && !pathname.startsWith(dest)) {
+                isRedirectingRef.current = true;
+                router.replace(dest);
+            }
         }
-    // router is stable in Next.js App Router — intentionally omitted from deps.
-    // requiredRoles is a module-level constant in each layout — stable reference.
+    // user, router intentionally omitted — user changes on every background
+    // /api/auth/me refresh (new object ref) and would re-trigger navigations.
+    // isLoggedIn changing is the only meaningful auth signal.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLoading, isLoggedIn, user, requiredRoles]);
+    }, [isLoading, isLoggedIn, pathname, requiredRoles]);
 
     if (isLoading || !user) return null;
     if (!requiredRoles.includes(user.role)) return null;

@@ -13,17 +13,14 @@ export default function LoginPage() {
     const hasRedirectedRef = useRef(false);
 
     useEffect(() => {
-        if (!isLoading && isLoggedIn && user && !hasRedirectedRef.current) {
+        if (isLoading || hasRedirectedRef.current) return;
+        if (isLoggedIn && user) {
             const dest = getDashboardPath(user.role);
-            // Guard: never push to /login — that would loop if role is stale.
-            if (dest !== "/login") {
+            if (dest && dest !== "/login") {
                 hasRedirectedRef.current = true;
                 router.push(dest);
             }
         }
-    // user and router intentionally omitted: isLoggedIn and isLoading changing
-    // is sufficient signal; re-running on user reference change (background
-    // /api/auth/me refresh) would double-push and cause the refresh loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isLoggedIn, isLoading]);
 
