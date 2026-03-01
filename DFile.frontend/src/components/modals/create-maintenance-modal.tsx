@@ -72,28 +72,31 @@ export function CreateMaintenanceModal({ open, onOpenChange, initialData, defaul
 
         if (initialData) {
             await updateRecordMutation.mutateAsync({
-                ...initialData,
-                assetId: formData.assetId || initialData.assetId,
-                description: formData.description || "No description provided",
-                priority: formData.priority as "Low" | "Medium" | "High",
-                type: formData.type as "Preventive" | "Corrective" | "Upgrade",
-                frequency: formData.frequency as any,
-                startDate: formData.startDate,
-                endDate: formData.endDate,
-                cost: Number(formData.cost),
-            } as MaintenanceRecord);
+                id: initialData.id,
+                payload: {
+                    assetId: formData.assetId || initialData.assetId,
+                    description: formData.description || "No description provided",
+                    priority: formData.priority as string,
+                    type: formData.type as string,
+                    frequency: formData.frequency as string,
+                    status: formData.status as string,
+                    startDate: formData.startDate,
+                    endDate: formData.endDate,
+                    cost: Number(formData.cost),
+                    dateReported: initialData.dateReported,
+                },
+            });
         } else if (formData.assetId) {
             await addRecordMutation.mutateAsync({
                 assetId: formData.assetId,
                 description: formData.description || "No description provided",
-                priority: (formData.priority as "Low" | "Medium" | "High") || "Medium",
+                priority: formData.priority as string || "Medium",
                 status: "Pending",
-                type: (formData.type as "Preventive" | "Corrective" | "Upgrade") || "Corrective",
-                frequency: (formData.frequency as any) || "One-time",
+                type: formData.type as string || "Corrective",
+                frequency: formData.frequency as string || "One-time",
                 startDate: formData.startDate || new Date().toISOString().split('T')[0],
                 endDate: formData.endDate,
                 cost: Number(formData.cost),
-                dateReported: new Date().toISOString().split('T')[0]
             });
         }
 

@@ -10,6 +10,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMaintenanceRecords, useUpdateMaintenanceStatus, useArchiveMaintenanceRecord, useRestoreMaintenanceRecord } from "@/hooks/use-maintenance";
 import { useAssets } from "@/hooks/use-assets";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface MaintenanceOperationsProps {
     onCreateRequest: () => void;
@@ -25,6 +26,7 @@ export function MaintenanceOperations({ onCreateRequest, onRecordClick }: Mainte
     const updateStatusMutation = useUpdateMaintenanceStatus();
     const archiveRecordMutation = useArchiveMaintenanceRecord();
     const restoreRecordMutation = useRestoreMaintenanceRecord();
+    const [archiveTarget, setArchiveTarget] = useState<string | null>(null);
     
     // Request Filters
     const [searchQuery, setSearchQuery] = useState("");
@@ -208,7 +210,7 @@ export function MaintenanceOperations({ onCreateRequest, onRecordClick }: Mainte
                                                         if (record.archived) {
                                                             restoreRecordMutation.mutateAsync(record.id);
                                                         } else {
-                                                            archiveRecordMutation.mutateAsync(record.id);
+                                                            setArchiveTarget(record.id);
                                                         }
                                                     }}
                                                     className={`p-1.5 rounded-md transition-colors ${record.archived ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'}`}
@@ -226,6 +228,22 @@ export function MaintenanceOperations({ onCreateRequest, onRecordClick }: Mainte
                     </div>
                 </CardContent>
             </Card>
+
+            <ConfirmDialog
+                open={archiveTarget !== null}
+                onOpenChange={(open) => { if (!open) setArchiveTarget(null); }}
+                title="Archive Record"
+                description="Are you sure you want to archive this maintenance record? It can be restored later from the archive view."
+                confirmLabel="Archive"
+                confirmVariant="destructive"
+                onConfirm={async () => {
+                    if (archiveTarget) {
+                        await archiveRecordMutation.mutateAsync(archiveTarget);
+                        setArchiveTarget(null);
+                    }
+                }}
+                isLoading={archiveRecordMutation.isPending}
+            />
         </div>
     );
 }

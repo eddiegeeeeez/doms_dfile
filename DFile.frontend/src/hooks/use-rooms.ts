@@ -17,7 +17,6 @@ export function useRoomCategories() {
     return useQuery({
         queryKey: ['room-categories', 'all'],
         queryFn: async () => {
-            // Fetch all categories including archived ones so management modal works correctly
             const { data } = await api.get<RoomCategory[]>('/api/roomcategories?includeArchived=true');
             return data;
         },
@@ -28,7 +27,7 @@ export function useAddRoom() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (room: Partial<Room>) => {
+        mutationFn: async (room: { unitId: string; name: string; floor: string; categoryId?: string; status?: string; maxOccupancy?: number }) => {
             const { data } = await api.post<Room>('/api/rooms', room);
             return data;
         },
@@ -46,8 +45,8 @@ export function useUpdateRoom() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (room: Room) => {
-            const { data } = await api.put<Room>(`/api/rooms/${room.id}`, room);
+        mutationFn: async ({ id, payload }: { id: string; payload: { unitId: string; name: string; floor: string; categoryId?: string; status?: string; maxOccupancy?: number; archived?: boolean } }) => {
+            const { data } = await api.put<Room>(`/api/rooms/${id}`, payload);
             return data;
         },
         onSuccess: () => {
@@ -64,21 +63,32 @@ export function useArchiveRoom() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (room: Room) => {
-            const updatedRoom = { 
-                ...room, 
-                archived: !room.archived, 
-                status: !room.archived ? "Deactivated" : "Available" 
-            };
-            const { data } = await api.put<Room>(`/api/rooms/${room.id}`, updatedRoom);
-            return data;
+        mutationFn: async (id: string) => {
+            await api.put(`/api/rooms/archive/${id}`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['rooms'] });
-            toast.success('Room archive status updated');
+            toast.success('Room archived');
         },
         onError: () => {
-            toast.error('Failed to update room archive status');
+            toast.error('Failed to archive room');
+        },
+    });
+}
+
+export function useRestoreRoom() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (id: string) => {
+            await api.put(`/api/rooms/restore/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['rooms'] });
+            toast.success('Room restored');
+        },
+        onError: () => {
+            toast.error('Failed to restore room');
         },
     });
 }
@@ -87,8 +97,8 @@ export function useAddRoomCategory() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (category: Partial<RoomCategory>) => {
-            const { data } = await api.post<RoomCategory>('/api/roomcategories', category);
+        mutationFn: async (payload: { name: string; subCategory: string; description: string; baseRate: number; maxOccupancy: number }) => {
+            const { data } = await api.post<RoomCategory>('/api/roomcategories', payload);
             return data;
         },
         onSuccess: () => {
@@ -105,8 +115,8 @@ export function useUpdateRoomCategory() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (category: RoomCategory) => {
-            const { data } = await api.put<RoomCategory>(`/api/roomcategories/${category.id}`, category);
+        mutationFn: async ({ id, payload }: { id: string; payload: { name: string; subCategory: string; description: string; baseRate: number; maxOccupancy: number; archived?: boolean; status?: string } }) => {
+            const { data } = await api.put<RoomCategory>(`/api/roomcategories/${id}`, payload);
             return data;
         },
         onSuccess: () => {
@@ -123,21 +133,32 @@ export function useArchiveRoomCategory() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (category: RoomCategory) => {
-             const updatedCategory = { 
-                ...category, 
-                archived: !category.archived, 
-                status: !category.archived ? "Archived" : "Active" 
-            };
-            const { data } = await api.put<RoomCategory>(`/api/roomcategories/${category.id}`, updatedCategory);
-            return data;
+        mutationFn: async (id: string) => {
+            await api.put(`/api/roomcategories/archive/${id}`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['room-categories'] });
-            toast.success('Room category archive status updated');
+            toast.success('Room category archived');
         },
         onError: () => {
-            toast.error('Failed to update room category archive status');
+            toast.error('Failed to archive room category');
+        },
+    });
+}
+
+export function useRestoreRoomCategory() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (id: string) => {
+            await api.put(`/api/roomcategories/restore/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['room-categories'] });
+            toast.success('Room category restored');
+        },
+        onError: () => {
+            toast.error('Failed to restore room category');
         },
     });
 }

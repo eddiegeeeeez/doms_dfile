@@ -27,15 +27,20 @@ namespace dfile.backend.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("Cat")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool>("Archived")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("CategoryId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal>("CurrentBookValue")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Desc")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Documents")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Image")
@@ -50,6 +55,9 @@ namespace dfile.backend.Migrations
                     b.Property<decimal>("MonthlyDepreciation")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("PurchaseDate")
                         .HasColumnType("datetime2");
 
@@ -57,7 +65,6 @@ namespace dfile.backend.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Room")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SerialNumber")
@@ -66,6 +73,9 @@ namespace dfile.backend.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TagNumber")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int?>("TenantId")
                         .HasColumnType("int");
@@ -79,7 +89,17 @@ namespace dfile.backend.Migrations
                     b.Property<string>("Vendor")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("WarrantyExpiry")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("TenantId", "TagNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Assets_TenantId_TagNumber")
+                        .HasFilter("[TagNumber] IS NOT NULL");
 
                     b.ToTable("Assets");
                 });
@@ -89,31 +109,94 @@ namespace dfile.backend.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<bool>("Archived")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("Name");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("HandlingType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("TenantId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("AssetCategories");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.AuditLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EntityId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NewValues")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldValues")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_AuditLogs_CreatedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("TenantId", "EntityType")
+                        .HasDatabaseName("IX_AuditLogs_Tenant_Entity");
+
+                    b.ToTable("AuditLogs");
                 });
 
             modelBuilder.Entity("DFile.backend.Models.Department", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("Archived")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -136,6 +219,8 @@ namespace dfile.backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("Departments");
                 });
 
@@ -143,6 +228,9 @@ namespace dfile.backend.Migrations
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("Archived")
+                        .HasColumnType("bit");
 
                     b.Property<string>("ContactNumber")
                         .IsRequired()
@@ -183,6 +271,8 @@ namespace dfile.backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("Employees");
                 });
 
@@ -196,7 +286,7 @@ namespace dfile.backend.Migrations
 
                     b.Property<string>("AssetId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Attachments")
                         .HasColumnType("nvarchar(max)");
@@ -240,6 +330,10 @@ namespace dfile.backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AssetId");
+
+                    b.HasIndex("TenantId");
+
                     b.ToTable("MaintenanceRecords");
                 });
 
@@ -262,9 +356,8 @@ namespace dfile.backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("CreatedAt")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Manufacturer")
                         .HasColumnType("nvarchar(max)");
@@ -272,8 +365,8 @@ namespace dfile.backend.Migrations
                     b.Property<string>("Model")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("PurchaseDate")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("PurchaseDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<decimal>("PurchasePrice")
                         .HasColumnType("decimal(18,2)");
@@ -299,6 +392,8 @@ namespace dfile.backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("PurchaseOrders");
                 });
 
@@ -306,6 +401,9 @@ namespace dfile.backend.Migrations
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("Archived")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Department")
                         .IsRequired()
@@ -328,7 +426,80 @@ namespace dfile.backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("Roles");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.RolePermission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("CanApprove")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("CanArchive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("CanCreate")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("CanDelete")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("CanEdit")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("CanView")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModuleName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("RoleTemplateId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleTemplateId", "ModuleName")
+                        .IsUnique()
+                        .HasDatabaseName("IX_RolePermissions_Template_Module");
+
+                    b.ToTable("RolePermissions");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.RoleTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RoleTemplates");
                 });
 
             modelBuilder.Entity("DFile.backend.Models.Room", b =>
@@ -368,6 +539,8 @@ namespace dfile.backend.Migrations
 
                     b.HasIndex("CategoryId");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("Rooms");
                 });
 
@@ -405,6 +578,8 @@ namespace dfile.backend.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("RoomCategories");
                 });
@@ -447,6 +622,8 @@ namespace dfile.backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("Tasks");
                 });
 
@@ -460,6 +637,10 @@ namespace dfile.backend.Migrations
 
                     b.Property<bool>("AssetTracking")
                         .HasColumnType("bit");
+
+                    b.Property<string>("BusinessAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -491,9 +672,41 @@ namespace dfile.backend.Migrations
                     b.Property<int>("SubscriptionPlan")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.ToTable("Tenants");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.TenantRole", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CustomLabel")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("RoleTemplateId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleTemplateId");
+
+                    b.HasIndex("TenantId", "RoleTemplateId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_TenantRoles_Tenant_Template");
+
+                    b.ToTable("TenantRoles");
                 });
 
             modelBuilder.Entity("DFile.backend.Models.User", b =>
@@ -507,11 +720,18 @@ namespace dfile.backend.Migrations
                     b.Property<string>("Avatar")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -527,21 +747,253 @@ namespace dfile.backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("TenantId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.UserRoleAssignment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TenantRoleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantRoleId");
+
+                    b.HasIndex("UserId", "TenantRoleId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_UserRoleAssignment_User_TenantRole");
+
+                    b.ToTable("UserRoleAssignments");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.Asset", b =>
+                {
+                    b.HasOne("DFile.backend.Models.AssetCategory", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.AssetCategory", b =>
+                {
+                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.AuditLog", b =>
+                {
+                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("DFile.backend.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Tenant");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.Department", b =>
+                {
+                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.Employee", b =>
+                {
+                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.MaintenanceRecord", b =>
+                {
+                    b.HasOne("DFile.backend.Models.Asset", "Asset")
+                        .WithMany()
+                        .HasForeignKey("AssetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Asset");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.PurchaseOrder", b =>
+                {
+                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.Role", b =>
+                {
+                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.RolePermission", b =>
+                {
+                    b.HasOne("DFile.backend.Models.RoleTemplate", "RoleTemplate")
+                        .WithMany("Permissions")
+                        .HasForeignKey("RoleTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RoleTemplate");
                 });
 
             modelBuilder.Entity("DFile.backend.Models.Room", b =>
                 {
                     b.HasOne("DFile.backend.Models.RoomCategory", "RoomCategory")
                         .WithMany()
-                        .HasForeignKey("CategoryId");
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("RoomCategory");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.RoomCategory", b =>
+                {
+                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.TaskItem", b =>
+                {
+                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.TenantRole", b =>
+                {
+                    b.HasOne("DFile.backend.Models.RoleTemplate", "RoleTemplate")
+                        .WithMany("TenantRoles")
+                        .HasForeignKey("RoleTemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RoleTemplate");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.User", b =>
+                {
+                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.UserRoleAssignment", b =>
+                {
+                    b.HasOne("DFile.backend.Models.TenantRole", "TenantRole")
+                        .WithMany("UserAssignments")
+                        .HasForeignKey("TenantRoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DFile.backend.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TenantRole");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.RoleTemplate", b =>
+                {
+                    b.Navigation("Permissions");
+
+                    b.Navigation("TenantRoles");
+                });
+
+            modelBuilder.Entity("DFile.backend.Models.TenantRole", b =>
+                {
+                    b.Navigation("UserAssignments");
                 });
 #pragma warning restore 612, 618
         }

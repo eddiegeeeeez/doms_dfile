@@ -1,4 +1,5 @@
 using DFile.backend.Data;
+using DFile.backend.DTOs;
 using DFile.backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,10 +7,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DFile.backend.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin,Finance,Maintenance,Super Admin")]
     [Route("api/maintenance")]
     [ApiController]
-    public class MaintenanceController : ControllerBase
+    public class MaintenanceController : TenantAwareController
     {
         private readonly AppDbContext _context;
 
@@ -18,154 +19,138 @@ namespace DFile.backend.Controllers
             _context = context;
         }
 
-        // GET: api/maintenance
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MaintenanceRecord>>> GetMaintenanceRecords([FromQuery] bool showArchived = false)
         {
-            return await _context.MaintenanceRecords.Where(r => r.Archived == showArchived).OrderByDescending(r => r.CreatedAt).ToListAsync();
+            var tenantId = GetCurrentTenantId();
+            var query = _context.MaintenanceRecords.Where(r => r.Archived == showArchived);
+
+            if (!IsSuperAdmin() && tenantId.HasValue)
+            {
+                query = query.Where(r => r.TenantId == tenantId);
+            }
+
+            return await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
         }
 
-        // GET: api/maintenance/5
         [HttpGet("{id}")]
         public async Task<ActionResult<MaintenanceRecord>> GetMaintenanceRecord(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var record = await _context.MaintenanceRecords.FindAsync(id);
 
-            if (record == null)
-            {
-                return NotFound();
-            }
+            if (record == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && record.TenantId != tenantId) return NotFound();
 
             return record;
         }
 
-        // POST: api/maintenance
         [HttpPost]
-        public async Task<ActionResult<MaintenanceRecord>> PostMaintenanceRecord(MaintenanceRecord record)
+        public async Task<ActionResult<MaintenanceRecord>> PostMaintenanceRecord(CreateMaintenanceRecordDto dto)
         {
-            if (string.IsNullOrEmpty(record.Id))
-                record.Id = Guid.NewGuid().ToString();
-            
-            record.CreatedAt = DateTime.UtcNow;
+            var tenantId = GetCurrentTenantId();
+
+            // Validate AssetId exists and belongs to same tenant
+            var asset = await _context.Assets.FindAsync(dto.AssetId);
+            if (asset == null) return BadRequest(new { message = "Asset not found." });
+            if (!IsSuperAdmin() && tenantId.HasValue && asset.TenantId != tenantId)
+                return BadRequest(new { message = "Asset does not belong to your organization." });
+
+            var record = new MaintenanceRecord
+            {
+                Id = Guid.NewGuid().ToString(),
+                AssetId = dto.AssetId,
+                Description = dto.Description,
+                Status = dto.Status,
+                Priority = dto.Priority,
+                Type = dto.Type,
+                Frequency = dto.Frequency,
+                StartDate = dto.StartDate,
+                EndDate = dto.EndDate,
+                Cost = dto.Cost,
+                Attachments = dto.Attachments,
+                DateReported = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                TenantId = IsSuperAdmin() ? null : tenantId,
+                Archived = false
+            };
+
             _context.MaintenanceRecords.Add(record);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetMaintenanceRecord", new { id = record.Id }, record);
         }
 
-        // PUT: api/maintenance/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutMaintenanceRecord(string id, MaintenanceRecord record)
+        public async Task<IActionResult> PutMaintenanceRecord(string id, UpdateMaintenanceRecordDto dto)
         {
-            if (id != record.Id)
-            {
-                return BadRequest();
-            }
+            var tenantId = GetCurrentTenantId();
+            var existing = await _context.MaintenanceRecords.FindAsync(id);
 
-            _context.Entry(record).State = EntityState.Modified;
+            if (existing == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && existing.TenantId != tenantId) return NotFound();
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!MaintenanceRecordExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            // Validate AssetId exists and belongs to same tenant
+            var asset = await _context.Assets.FindAsync(dto.AssetId);
+            if (asset == null) return BadRequest(new { message = "Asset not found." });
+            if (!IsSuperAdmin() && tenantId.HasValue && asset.TenantId != tenantId)
+                return BadRequest(new { message = "Asset does not belong to your organization." });
 
+            existing.AssetId = dto.AssetId;
+            existing.Description = dto.Description;
+            existing.Status = dto.Status;
+            existing.Priority = dto.Priority;
+            existing.Type = dto.Type;
+            existing.Frequency = dto.Frequency;
+            existing.StartDate = dto.StartDate;
+            existing.EndDate = dto.EndDate;
+            existing.Cost = dto.Cost;
+            existing.Attachments = dto.Attachments;
+
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // PUT: api/maintenance/archive/5
         [HttpPut("archive/{id}")]
         public async Task<IActionResult> ArchiveMaintenanceRecord(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var record = await _context.MaintenanceRecords.FindAsync(id);
-            if (record == null)
-            {
-                return NotFound();
-            }
+
+            if (record == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && record.TenantId != tenantId) return NotFound();
 
             record.Archived = true;
-            _context.Entry(record).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!MaintenanceRecordExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // PUT: api/maintenance/restore/5
         [HttpPut("restore/{id}")]
         public async Task<IActionResult> RestoreMaintenanceRecord(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var record = await _context.MaintenanceRecords.FindAsync(id);
-            if (record == null)
-            {
-                return NotFound();
-            }
+
+            if (record == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && record.TenantId != tenantId) return NotFound();
 
             record.Archived = false;
-            _context.Entry(record).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!MaintenanceRecordExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // DELETE: api/maintenance/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMaintenanceRecord(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var record = await _context.MaintenanceRecords.FindAsync(id);
-            if (record == null)
-            {
-                return NotFound();
-            }
+
+            if (record == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && record.TenantId != tenantId) return NotFound();
 
             _context.MaintenanceRecords.Remove(record);
             await _context.SaveChangesAsync();
-
             return NoContent();
-        }
-
-        private bool MaintenanceRecordExists(string id)
-        {
-            return _context.MaintenanceRecords.Any(e => e.Id == id);
         }
     }
 }

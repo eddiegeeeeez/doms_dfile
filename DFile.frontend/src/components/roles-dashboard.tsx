@@ -1,13 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Fingerprint, Plus, Shield, ChevronRight, Users, Mail, Phone, Building2, Archive, RotateCcw, Search, Filter } from "lucide-react";
+import { Fingerprint, Plus, Shield, ChevronRight, Archive, RotateCcw, Search, Filter, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Employee } from "@/types/asset";
 
 interface Role {
@@ -26,32 +34,69 @@ interface RolesDashboardProps {
     onArchiveEmployee?: (id: string) => void;
 }
 
+type SortKey = "name" | "email" | "department" | "role" | "hireDate" | "status";
+type SortDir = "asc" | "desc";
+
 export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, onEmployeeClick, onArchiveEmployee }: RolesDashboardProps) {
     const [showArchived, setShowArchived] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [roleFilter, setRoleFilter] = useState("All");
 
+    // Sort state
+    const [sortKey, setSortKey] = useState<SortKey | null>(null);
+    const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+    // Confirm dialog state
+    const [confirmState, setConfirmState] = useState<{
+        employeeId: string;
+        action: "archive" | "restore";
+        employeeName: string;
+    } | null>(null);
+
+    const toggleSort = (key: SortKey) => {
+        if (sortKey === key) {
+            setSortDir(d => d === "asc" ? "desc" : "asc");
+        } else {
+            setSortKey(key);
+            setSortDir("asc");
+        }
+    };
+
+    const sorted = (key: SortKey): "asc" | "desc" | false =>
+        sortKey === key ? sortDir : false;
+
     const activeEmps = employees.filter(e => e.status !== "Archived");
     const archivedEmps = employees.filter(e => e.status === "Archived");
     const baseEmps = showArchived ? archivedEmps : activeEmps;
 
-    // Filter Logic
-    const displayEmps = baseEmps.filter(emp => {
-        // Text Search
+    const filteredEmps = baseEmps.filter(emp => {
         const query = searchQuery.toLowerCase();
-        const fullName = `${emp.firstName} ${emp.middleName ? emp.middleName + ' ' : ''}${emp.lastName}`.toLowerCase();
+        const fullName = `${emp.firstName} ${emp.middleName ? emp.middleName + " " : ""}${emp.lastName}`.toLowerCase();
         const matchesSearch =
             fullName.includes(query) ||
             emp.email.toLowerCase().includes(query) ||
             emp.role.toLowerCase().includes(query) ||
             emp.id.toLowerCase().includes(query);
-
         if (!matchesSearch) return false;
-
-        // Role Filter
         if (roleFilter !== "All" && emp.role !== roleFilter) return false;
-
         return true;
+    });
+
+    const displayEmps = [...filteredEmps].sort((a, b) => {
+        if (!sortKey) return 0;
+        let av = "";
+        let bv = "";
+        const fullNameA = `${a.firstName} ${a.middleName ? a.middleName + " " : ""}${a.lastName}`.toLowerCase();
+        const fullNameB = `${b.firstName} ${b.middleName ? b.middleName + " " : ""}${b.lastName}`.toLowerCase();
+        if (sortKey === "name") { av = fullNameA; bv = fullNameB; }
+        else if (sortKey === "email") { av = a.email.toLowerCase(); bv = b.email.toLowerCase(); }
+        else if (sortKey === "department") { av = (a.department ?? "").toLowerCase(); bv = (b.department ?? "").toLowerCase(); }
+        else if (sortKey === "role") { av = (a.role ?? "").toLowerCase(); bv = (b.role ?? "").toLowerCase(); }
+        else if (sortKey === "hireDate") { av = a.hireDate ?? ""; bv = b.hireDate ?? ""; }
+        else if (sortKey === "status") { av = (a.status ?? "").toLowerCase(); bv = (b.status ?? "").toLowerCase(); }
+        if (av < bv) return sortDir === "asc" ? -1 : 1;
+        if (av > bv) return sortDir === "asc" ? 1 : -1;
+        return 0;
     });
 
     const uniqueRoles = Array.from(new Set(employees.map(e => e.role).filter(role => role && role.trim() !== ""))).sort();
@@ -60,6 +105,12 @@ export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, 
         Active: "success",
         Inactive: "danger",
         Archived: "muted",
+    };
+
+    const handleConfirm = () => {
+        if (!confirmState) return;
+        onArchiveEmployee?.(confirmState.employeeId);
+        setConfirmState(null);
     };
 
     return (
@@ -99,26 +150,64 @@ export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, 
                         Deploy Role
                     </Button>
                     <Button variant={showArchived ? "default" : "outline"} size="sm" className="h-10 text-sm w-[160px] justify-start" onClick={() => setShowArchived(!showArchived)}>
-                        {showArchived ? <><RotateCcw size={16} className="mr-2" />Show Active ({activeEmps.length})</> : <><Archive size={16} className="mr-2" />Show Archive ({archivedEmps.length})</>}
+                        {showArchived
+                            ? <><RotateCcw size={16} className="mr-2" />Show Active ({activeEmps.length})</>
+                            : <><Archive size={16} className="mr-2" />Show Archive ({archivedEmps.length})</>}
                     </Button>
                 </div>
             </div>
 
-            {/* Personnel Card */}
+            {/* Personnel Table */}
             <Card className="overflow-hidden">
                 <div className="overflow-x-auto">
                     <Table className="min-w-[1200px] table-fixed">
                         <TableHeader>
                             <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                <TableHead className="h-10 px-4 py-3 text-left align-middle font-medium text-muted-foreground text-xs w-[100px]">ID</TableHead>
-                                <TableHead className="h-10 px-4 py-3 text-left align-middle font-medium text-muted-foreground text-xs w-[200px]">Name</TableHead>
-                                <TableHead className="h-10 px-4 py-3 text-left align-middle font-medium text-muted-foreground text-xs w-[250px]">Email</TableHead>
-                                <TableHead className="h-10 px-4 py-3 text-left align-middle font-medium text-muted-foreground text-xs w-[140px]">Contact</TableHead>
-                                <TableHead className="h-10 px-4 py-3 text-left align-middle font-medium text-muted-foreground text-xs w-[140px]">Department</TableHead>
-                                <TableHead className="h-10 px-4 py-3 text-left align-middle font-medium text-muted-foreground text-xs w-[140px]">Role</TableHead>
-                                <TableHead className="h-10 px-4 py-3 text-left align-middle font-medium text-muted-foreground text-xs w-[120px]">Hire Date</TableHead>
-                                <TableHead className="h-10 px-4 py-3 text-left align-middle font-medium text-muted-foreground text-xs w-[100px]">Status</TableHead>
-                                <TableHead className="h-10 px-4 py-3 text-center align-middle font-medium text-muted-foreground text-xs w-[80px]">{showArchived ? "Restore" : "Archive"}</TableHead>
+                                <TableHead className="h-10 px-4 py-3 text-xs w-[100px]">ID</TableHead>
+                                <SortableTableHead
+                                    className="h-10 px-4 py-3 text-xs w-[200px]"
+                                    sorted={sorted("name")}
+                                    onSort={() => toggleSort("name")}
+                                >
+                                    Name
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    className="h-10 px-4 py-3 text-xs w-[250px]"
+                                    sorted={sorted("email")}
+                                    onSort={() => toggleSort("email")}
+                                >
+                                    Email
+                                </SortableTableHead>
+                                <TableHead className="h-10 px-4 py-3 text-xs w-[140px]">Contact</TableHead>
+                                <SortableTableHead
+                                    className="h-10 px-4 py-3 text-xs w-[140px]"
+                                    sorted={sorted("department")}
+                                    onSort={() => toggleSort("department")}
+                                >
+                                    Department
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    className="h-10 px-4 py-3 text-xs w-[140px]"
+                                    sorted={sorted("role")}
+                                    onSort={() => toggleSort("role")}
+                                >
+                                    Role
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    className="h-10 px-4 py-3 text-xs w-[120px]"
+                                    sorted={sorted("hireDate")}
+                                    onSort={() => toggleSort("hireDate")}
+                                >
+                                    Hire Date
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    className="h-10 px-4 py-3 text-xs w-[100px]"
+                                    sorted={sorted("status")}
+                                    onSort={() => toggleSort("status")}
+                                >
+                                    Status
+                                </SortableTableHead>
+                                <TableHead className="h-10 px-4 py-3 text-xs text-center w-[80px]">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -137,7 +226,7 @@ export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, 
                                             </div>
                                         </TableCell>
                                         <TableCell className="p-0 align-middle">
-                                            <div className="px-4 py-3 w-[200px] truncate text-sm font-normal text-foreground" title={`${emp.firstName} ${emp.middleName ? emp.middleName + ' ' : ''}${emp.lastName}`}>
+                                            <div className="px-4 py-3 w-[200px] truncate text-sm font-normal text-foreground" title={`${emp.firstName} ${emp.middleName ? emp.middleName + " " : ""}${emp.lastName}`}>
                                                 {emp.firstName} {emp.middleName ? `${emp.middleName} ` : ""}{emp.lastName}
                                             </div>
                                         </TableCell>
@@ -152,12 +241,12 @@ export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, 
                                             </div>
                                         </TableCell>
                                         <TableCell className="p-0 align-middle">
-                                            <div className="px-4 py-3 w-[140px] truncate text-sm text-muted-foreground font-normal" title={emp.department}>
+                                            <div className="px-4 py-3 w-[140px] truncate text-sm text-muted-foreground" title={emp.department}>
                                                 {emp.department}
                                             </div>
                                         </TableCell>
                                         <TableCell className="p-0 align-middle">
-                                            <div className="px-4 py-3 w-[140px] truncate text-sm text-muted-foreground font-normal" title={emp.role}>
+                                            <div className="px-4 py-3 w-[140px] truncate text-sm text-muted-foreground" title={emp.role}>
                                                 {emp.role}
                                             </div>
                                         </TableCell>
@@ -171,20 +260,43 @@ export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, 
                                                 <Badge variant={statusVariant[emp.status] ?? "muted"}>{emp.status}</Badge>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="p-0 align-middle text-center">
+                                        <TableCell className="p-0 align-middle text-center" onClick={e => e.stopPropagation()}>
                                             <div className="px-4 py-3 w-[80px] flex justify-center">
-                                                <Button
-                                                    variant="ghost" 
-                                                    size="icon"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        onArchiveEmployee?.(emp.id);
-                                                    }}
-                                                    className={`h-8 w-8 hover:bg-transparent ${emp.status === 'Archived' ? 'text-primary hover:text-primary/80' : 'text-muted-foreground hover:text-destructive'}`}
-                                                    title={emp.status === 'Archived' ? 'Restore' : 'Archive'}
-                                                >
-                                                    {emp.status === 'Archived' ? <RotateCcw className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-                                                </Button>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                            <span className="sr-only">Actions</span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-40 z-[200]">
+                                                        {emp.status === "Archived" ? (
+                                                            <DropdownMenuItem
+                                                                onClick={() => setConfirmState({
+                                                                    employeeId: emp.id,
+                                                                    action: "restore",
+                                                                    employeeName: `${emp.firstName} ${emp.lastName}`,
+                                                                })}
+                                                                className="gap-2 cursor-pointer"
+                                                            >
+                                                                <RotateCcw className="h-4 w-4 text-primary" />
+                                                                Restore
+                                                            </DropdownMenuItem>
+                                                        ) : (
+                                                            <DropdownMenuItem
+                                                                onClick={() => setConfirmState({
+                                                                    employeeId: emp.id,
+                                                                    action: "archive",
+                                                                    employeeName: `${emp.firstName} ${emp.lastName}`,
+                                                                })}
+                                                                className="gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                                                            >
+                                                                <Archive className="h-4 w-4" />
+                                                                Archive
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -230,6 +342,21 @@ export function RolesDashboard({ roles, employees, onOpenModal, onAddPersonnel, 
                     </div>
                 )}
             </div>
+
+            {/* Archive / Restore confirmation */}
+            <ConfirmDialog
+                open={!!confirmState}
+                onOpenChange={open => { if (!open) setConfirmState(null); }}
+                title={confirmState?.action === "archive" ? "Archive Personnel" : "Restore Personnel"}
+                description={
+                    confirmState?.action === "archive"
+                        ? `Archive "${confirmState?.employeeName}"? Their access will be suspended.`
+                        : `Restore "${confirmState?.employeeName}"? They will regain system access.`
+                }
+                confirmLabel={confirmState?.action === "archive" ? "Archive" : "Restore"}
+                confirmVariant={confirmState?.action === "archive" ? "destructive" : "default"}
+                onConfirm={handleConfirm}
+            />
         </div>
     );
 }

@@ -3,9 +3,7 @@
 @import "shadcn/tailwind.css";
 
 /* 
-   Prevents layout shift when modals open.
-   Strategy: Always keep the scrollbar visible on HTML.
-   Force zero padding on body to override Radix UI's compensation.
+   Modal scroll lock fix — always show scrollbar
 */
 html {
   margin-right: 0 !important;
@@ -13,32 +11,25 @@ html {
 }
 
 body {
-  position: relative !important; /* Prevent Radix from setting fixed position if it tries */
+  position: relative !important;
   padding-right: 0 !important;
   margin-right: 0 !important; 
-  width: 100% !important; /* Ensure body width doesn't fluctuate */
+  width: 100% !important;
 }
 
-/* Ensure no other element gets padding added by Radix */
 [data-radix-scroll-lock-ignore] {
   padding-right: 0 !important;
 }
 
-/* 
-   Specific override for Radix UI Dialog open state
-   Radix adds style="pointer-events: none" and data-scroll-locked to body
-   We force overflow: hidden to lock scroll, but html scrollbar remains visible.
-*/
 body[data-scroll-locked] {
   padding-right: 0 !important;
   overflow: hidden !important; 
   width: 100% !important; 
 }
 
-/* Force sticky/fixed elements to not shift */
 header.sticky, 
 [data-radix-scroll-lock-ignore] {
-  padding-right: 0 !important; /* Ensure header padding is consistent */
+  padding-right: 0 !important;
   margin-right: 0 !important;
 }
 
@@ -85,7 +76,7 @@ header.sticky,
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 
-  /* DFile semantic brand tokens — respond to light/dark */
+  /* DFile semantic brand tokens */
   --color-brand: var(--brand);
   --color-brand-light: var(--brand-light);
   --color-brand-muted: var(--brand-muted);
@@ -96,37 +87,37 @@ header.sticky,
 
 /* ─── Light Mode ─── */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.15 0.03 260);
+  --radius: 0.75rem;
+  --background: oklch(0.985 0.002 260);
+  --foreground: oklch(0.145 0.03 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.03 260);
+  --card-foreground: oklch(0.145 0.03 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.03 260);
+  --popover-foreground: oklch(0.145 0.03 260);
   --primary: #182350;
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.96 0.005 260);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.965 0.003 260);
   --secondary-foreground: #182350;
-  --muted: oklch(0.96 0.005 260);
-  --muted-foreground: oklch(0.5 0.02 260);
-  --accent: oklch(0.85 0.04 220);
+  --muted: oklch(0.965 0.003 260);
+  --muted-foreground: oklch(0.45 0.015 260);
+  --accent: oklch(0.965 0.003 260);
   --accent-foreground: #182350;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.91 0.005 260);
-  --input: oklch(0.91 0.005 260);
+  --border: oklch(0.925 0.003 260);
+  --input: oklch(0.925 0.003 260);
   --ring: #182350;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.15 0.03 260);
+  --sidebar: oklch(0.98 0.002 260);
+  --sidebar-foreground: oklch(0.145 0.03 260);
   --sidebar-primary: #182350;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.96 0.005 260);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.955 0.004 260);
   --sidebar-accent-foreground: #182350;
-  --sidebar-border: oklch(0.91 0.005 260);
+  --sidebar-border: oklch(0.93 0.003 260);
   --sidebar-ring: #182350;
 
   /* DFile brand — light */
@@ -140,45 +131,45 @@ header.sticky,
 
 /* ─── Dark Mode ─── */
 .dark {
-  --background: oklch(0.13 0.02 260);
-  --foreground: oklch(0.93 0.005 260);
-  --card: oklch(0.17 0.02 260);
-  --card-foreground: oklch(0.93 0.005 260);
-  --popover: oklch(0.17 0.02 260);
-  --popover-foreground: oklch(0.93 0.005 260);
+  --background: oklch(0.12 0.015 260);
+  --foreground: oklch(0.94 0.004 260);
+  --card: oklch(0.155 0.015 260);
+  --card-foreground: oklch(0.94 0.004 260);
+  --popover: oklch(0.155 0.015 260);
+  --popover-foreground: oklch(0.94 0.004 260);
   --primary: oklch(0.75 0.08 230);
-  --primary-foreground: oklch(0.13 0.02 260);
-  --secondary: oklch(0.22 0.02 260);
-  --secondary-foreground: oklch(0.93 0.005 260);
-  --muted: oklch(0.22 0.02 260);
-  --muted-foreground: oklch(0.65 0.02 260);
-  --accent: oklch(0.30 0.03 260);
-  --accent-foreground: oklch(0.93 0.005 260);
+  --primary-foreground: oklch(0.12 0.015 260);
+  --secondary: oklch(0.2 0.015 260);
+  --secondary-foreground: oklch(0.94 0.004 260);
+  --muted: oklch(0.2 0.015 260);
+  --muted-foreground: oklch(0.62 0.015 260);
+  --accent: oklch(0.24 0.02 260);
+  --accent-foreground: oklch(0.94 0.004 260);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(0.26 0.02 260);
-  --input: oklch(0.26 0.02 260);
+  --border: oklch(0.24 0.015 260);
+  --input: oklch(0.24 0.015 260);
   --ring: oklch(0.55 0.06 230);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.15 0.02 260);
-  --sidebar-foreground: oklch(0.93 0.005 260);
+  --sidebar: oklch(0.135 0.015 260);
+  --sidebar-foreground: oklch(0.94 0.004 260);
   --sidebar-primary: oklch(0.75 0.08 230);
-  --sidebar-primary-foreground: oklch(0.13 0.02 260);
-  --sidebar-accent: oklch(0.22 0.02 260);
-  --sidebar-accent-foreground: oklch(0.93 0.005 260);
-  --sidebar-border: oklch(0.26 0.02 260);
+  --sidebar-primary-foreground: oklch(0.12 0.015 260);
+  --sidebar-accent: oklch(0.2 0.015 260);
+  --sidebar-accent-foreground: oklch(0.94 0.004 260);
+  --sidebar-border: oklch(0.24 0.015 260);
   --sidebar-ring: oklch(0.55 0.06 230);
 
-  /* DFile brand — dark (lighter tones for readability) */
+  /* DFile brand — dark */
   --brand: #A8B8E8;
   --brand-light: #1E3A5F;
-  --brand-muted: oklch(0.20 0.02 260);
+  --brand-muted: oklch(0.18 0.015 260);
   /* Amber/gold accent — dark */
   --amber: #FBBF24;
-  --amber-foreground: oklch(0.13 0.02 260);
+  --amber-foreground: oklch(0.12 0.015 260);
 }
 
 @layer base {
@@ -187,7 +178,7 @@ header.sticky,
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }
 

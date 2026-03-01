@@ -1,7 +1,34 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { Role, Employee, Department } from '@/types/asset'; // Ensure types are exported from here or correct path
+import { Role, Employee, Department } from '@/types/asset';
 import { toast } from 'sonner';
+
+interface CreateRolePayload {
+    designation: string;
+    department: string;
+    scope: string;
+}
+
+interface CreateDepartmentPayload {
+    name: string;
+    description: string;
+    head: string;
+}
+
+interface CreateEmployeePayload {
+    firstName: string;
+    middleName?: string;
+    lastName: string;
+    email: string;
+    contactNumber: string;
+    department: string;
+    role: string;
+    hireDate: string;
+}
+
+interface UpdateEmployeePayload extends CreateEmployeePayload {
+    status: string;
+}
 
 export function useRoles() {
     return useQuery({
@@ -13,21 +40,25 @@ export function useRoles() {
     });
 }
 
-export function useEmployees() {
+export function useEmployees(showArchived: boolean = false) {
     return useQuery({
-        queryKey: ['employees'],
+        queryKey: ['employees', showArchived],
         queryFn: async () => {
-             const { data } = await api.get<Employee[]>('/api/Employees');
-             return data;
+            const { data } = await api.get<Employee[]>('/api/Employees', {
+                params: { showArchived }
+            });
+            return data;
         },
     });
 }
 
-export function useDepartments() {
+export function useDepartments(showArchived: boolean = false) {
     return useQuery({
-        queryKey: ['departments'],
+        queryKey: ['departments', showArchived],
         queryFn: async () => {
-            const { data } = await api.get<Department[]>('/api/Departments');
+            const { data } = await api.get<Department[]>('/api/Departments', {
+                params: { showArchived }
+            });
             return data;
         },
     });
@@ -37,8 +68,8 @@ export function useAddRole() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (role: Role) => {
-            const { data } = await api.post<Role>('/api/Roles', role);
+        mutationFn: async (payload: CreateRolePayload) => {
+            const { data } = await api.post<Role>('/api/Roles', payload);
             return data;
         },
         onSuccess: () => {
@@ -51,12 +82,64 @@ export function useAddRole() {
     });
 }
 
+export function useUpdateRole() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ id, payload }: { id: string; payload: CreateRolePayload }) => {
+            const { data } = await api.put<Role>(`/api/Roles/${id}`, payload);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['roles'] });
+            toast.success('Role updated successfully');
+        },
+        onError: () => {
+            toast.error('Failed to update role');
+        },
+    });
+}
+
+export function useArchiveRole() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (id: string) => {
+            await api.put(`/api/Roles/archive/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['roles'] });
+            toast.success('Role archived');
+        },
+        onError: () => {
+            toast.error('Failed to archive role');
+        },
+    });
+}
+
+export function useRestoreRole() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (id: string) => {
+            await api.put(`/api/Roles/restore/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['roles'] });
+            toast.success('Role restored');
+        },
+        onError: () => {
+            toast.error('Failed to restore role');
+        },
+    });
+}
+
 export function useAddEmployee() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (employee: Employee) => {
-            const { data } = await api.post<Employee>('/api/Employees', employee);
+        mutationFn: async (payload: CreateEmployeePayload) => {
+            const { data } = await api.post<Employee>('/api/Employees', payload);
             return data;
         },
         onSuccess: () => {
@@ -73,9 +156,9 @@ export function useUpdateEmployee() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (employee: Employee) => {
-            await api.put<Employee>(`/api/Employees/${employee.id}`, employee);
-            return employee;
+        mutationFn: async ({ id, payload }: { id: string; payload: UpdateEmployeePayload }) => {
+            const { data } = await api.put<Employee>(`/api/Employees/${id}`, payload);
+            return data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['employees'] });
@@ -91,25 +174,102 @@ export function useArchiveEmployee() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (employeeId: string) => {
-             // First fetch to clear status
-            const { data: emp } = await api.get<Employee>(`/api/Employees/${employeeId}`);
-            if (emp.status === "Archived") {
-                await api.put(`/api/Employees/restore/${employeeId}`);
-                emp.status = "Active";
-            } else {
-                await api.put(`/api/Employees/archive/${employeeId}`);
-                emp.status = "Archived";
-            }
-            return emp;
+        mutationFn: async (id: string) => {
+            await api.put(`/api/Employees/archive/${id}`);
         },
-        onSuccess: (data) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['employees'] });
-            const message = data?.status === 'Archived' ? 'Employee archived' : 'Employee restored';
-            toast.success(message);
+            toast.success('Employee archived');
         },
         onError: () => {
-            toast.error('Failed to update employee status');
+            toast.error('Failed to archive employee');
+        },
+    });
+}
+
+export function useRestoreEmployee() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (id: string) => {
+            await api.put(`/api/Employees/restore/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['employees'] });
+            toast.success('Employee restored');
+        },
+        onError: () => {
+            toast.error('Failed to restore employee');
+        },
+    });
+}
+
+export function useAddDepartment() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (payload: CreateDepartmentPayload) => {
+            const { data } = await api.post<Department>('/api/Departments', payload);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['departments'] });
+            toast.success('Department added successfully');
+        },
+        onError: () => {
+            toast.error('Failed to add department');
+        },
+    });
+}
+
+export function useUpdateDepartment() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ id, payload }: { id: string; payload: CreateDepartmentPayload }) => {
+            const { data } = await api.put<Department>(`/api/Departments/${id}`, payload);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['departments'] });
+            toast.success('Department updated successfully');
+        },
+        onError: () => {
+            toast.error('Failed to update department');
+        },
+    });
+}
+
+export function useArchiveDepartment() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (id: string) => {
+            await api.put(`/api/Departments/archive/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['departments'] });
+            toast.success('Department archived');
+        },
+        onError: () => {
+            toast.error('Failed to archive department');
+        },
+    });
+}
+
+export function useRestoreDepartment() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (id: string) => {
+            await api.put(`/api/Departments/restore/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['departments'] });
+            toast.success('Department restored');
+        },
+        onError: () => {
+            toast.error('Failed to restore department');
         },
     });
 }

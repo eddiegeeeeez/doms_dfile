@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddScoped<DFile.backend.Controllers.RequireTenantFilter>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -22,7 +23,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     }));
 
 // Authentication
-var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"] ?? "superSecretKey12345678901234567890"); // Use env var in prod
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("JWT key is not configured. Set Jwt:Key in appsettings or environment variables.");
+var key = Encoding.ASCII.GetBytes(jwtKey);
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -51,6 +54,8 @@ builder.Services.AddCors(options =>
         .AllowAnyHeader());
 });
 
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -58,11 +63,41 @@ var app = builder.Build();
 // 1. Static files FIRST — lets IIS/Kestrel short-circuit for .js/.css/etc.
 //    without passing through auth or CORS middleware on every asset request.
 //    Do NOT call UseDefaultFiles() — MapFallbackToFile handles the root redirect.
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        var headers = ctx.Context.Response.Headers;
+        var requestPath = ctx.Context.Request.Path.Value ?? "";
 
-// 2. Swagger (before auth so it's always accessible for debugging)
-app.UseSwagger();
-app.UseSwaggerUI();
+        if (requestPath.StartsWith("/_next/static/", StringComparison.OrdinalIgnoreCase))
+        {
+            // Content-hashed filenames — safe to cache forever in browser and CDN.
+            // On redeploy the hash changes, guaranteeing a fresh fetch.
+            headers["Cache-Control"] = "public, max-age=31536000, immutable";
+        }
+        else if (ctx.File.Name.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+        {
+            // HTML files must never be served stale — always revalidate so the
+            // browser fetches the latest index.html after a redeploy.
+            headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+            headers["Pragma"] = "no-cache";
+            headers["Expires"] = "0";
+        }
+        else
+        {
+            // Other static assets (images, SVGs, fonts, icons) — 1-day cache
+            headers["Cache-Control"] = "public, max-age=86400";
+        }
+    }
+});
+
+// 2. Swagger — development only
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 // 3. CORS before auth/controllers
 app.UseCors("AllowAll");
@@ -71,27 +106,26 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 5. Diagnostic endpoints
-app.MapGet("/debug", () => Results.Ok($"App Running. Env: {app.Environment.EnvironmentName}"));
+// 5. Health endpoint (always-on, no sensitive data)
 app.MapGet("/api/health", () => Results.Ok("API is Healthy"));
-app.MapGet("/api/db-test", (AppDbContext db) => 
+
+// DB connectivity check — development only
+if (app.Environment.IsDevelopment())
 {
-    try
+    app.MapGet("/api/db-test", (AppDbContext db) =>
     {
-        if (db.Database.CanConnect())
+        try
         {
-            return Results.Ok("Database connection successful.");
+            return db.Database.CanConnect()
+                ? Results.Ok("Database connection successful.")
+                : Results.Problem("Database connection failed (CanConnect returned false). Check logs for details.");
         }
-        else
+        catch (Exception ex)
         {
-            return Results.Problem("Database connection failed (CanConnect returned false). Check logs for details.");
+            return Results.Problem($"Database connection error: {ex.Message}");
         }
-    }
-    catch (Exception ex)
-    {
-        return Results.Problem($"Database connection error: {ex.Message}");
-    }
-});
+    });
+}
 
 // 6. Map controllers (all /api/* routes)
 app.MapControllers();

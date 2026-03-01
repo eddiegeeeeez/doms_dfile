@@ -11,7 +11,7 @@ interface RoomDetailsModalProps {
     onOpenChange: (open: boolean) => void;
     room: Room | null;
     roomCategories: { id: string; name: string; subCategory?: string }[];
-    onEdit: () => void;
+    onEdit?: () => void;
 }
 
 export function RoomDetailsModal({ open, onOpenChange, room, roomCategories, onEdit }: RoomDetailsModalProps) {
@@ -114,16 +114,18 @@ export function RoomDetailsModal({ open, onOpenChange, room, roomCategories, onE
                     <Button variant="outline" onClick={() => onOpenChange(false)} className="">
                         Close
                     </Button>
-                    <Button 
-                        onClick={() => {
-                            onOpenChange(false);
-                            onEdit();
-                        }} 
-                        className=" bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
-                    >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Details
-                    </Button>
+                    {onEdit && (
+                        <Button 
+                            onClick={() => {
+                                onOpenChange(false);
+                                onEdit();
+                            }} 
+                            className=" bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
+                        >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Details
+                        </Button>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>

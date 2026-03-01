@@ -1,4 +1,5 @@
 using DFile.backend.Data;
+using DFile.backend.DTOs;
 using DFile.backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,8 +9,8 @@ namespace DFile.backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
-    public class TasksController : ControllerBase
+    [Authorize(Roles = "Admin,Maintenance,Super Admin")]
+    public class TasksController : TenantAwareController
     {
         private readonly AppDbContext _context;
 
@@ -18,128 +19,118 @@ namespace DFile.backend.Controllers
             _context = context;
         }
 
-        // GET: api/Tasks
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasks([FromQuery] bool showArchived = false)
         {
-            return await _context.Tasks.Where(t => t.Archived == showArchived).ToListAsync();
+            var tenantId = GetCurrentTenantId();
+            var query = _context.Tasks.Where(t => t.Archived == showArchived);
+
+            if (!IsSuperAdmin() && tenantId.HasValue)
+            {
+                query = query.Where(t => t.TenantId == tenantId);
+            }
+
+            return await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
         }
 
-        // GET: api/Tasks/5
         [HttpGet("{id}")]
         public async Task<ActionResult<TaskItem>> GetTask(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var task = await _context.Tasks.FindAsync(id);
 
-            if (task == null)
-            {
-                return NotFound();
-            }
+            if (task == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && task.TenantId != tenantId) return NotFound();
 
             return task;
         }
 
-        // POST: api/Tasks
         [HttpPost]
-        public async Task<ActionResult<TaskItem>> PostTask(TaskItem task)
+        public async Task<ActionResult<TaskItem>> PostTask(CreateTaskDto dto)
         {
+            var tenantId = GetCurrentTenantId();
+
+            var task = new TaskItem
+            {
+                Id = Guid.NewGuid().ToString(),
+                Title = dto.Title,
+                Description = dto.Description,
+                Priority = dto.Priority,
+                Status = dto.Status,
+                AssignedTo = dto.AssignedTo,
+                DueDate = dto.DueDate,
+                CreatedAt = DateTime.UtcNow,
+                TenantId = IsSuperAdmin() ? null : tenantId,
+                Archived = false
+            };
+
             _context.Tasks.Add(task);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (TaskExists(task.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetTask", new { id = task.Id }, task);
         }
 
-        // PUT: api/Tasks/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutTask(string id, TaskItem task)
+        public async Task<IActionResult> PutTask(string id, UpdateTaskDto dto)
         {
-            if (id != task.Id)
-            {
-                return BadRequest();
-            }
+            var tenantId = GetCurrentTenantId();
+            var existing = await _context.Tasks.FindAsync(id);
 
-            _context.Entry(task).State = EntityState.Modified;
+            if (existing == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && existing.TenantId != tenantId) return NotFound();
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!TaskExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            existing.Title = dto.Title;
+            existing.Description = dto.Description;
+            existing.Priority = dto.Priority;
+            existing.Status = dto.Status;
+            existing.AssignedTo = dto.AssignedTo;
+            existing.DueDate = dto.DueDate;
+            existing.Archived = dto.Archived;
 
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // PUT: api/Tasks/restore/5
+        [HttpPut("archive/{id}")]
+        public async Task<IActionResult> ArchiveTask(string id)
+        {
+            var tenantId = GetCurrentTenantId();
+            var task = await _context.Tasks.FindAsync(id);
+
+            if (task == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && task.TenantId != tenantId) return NotFound();
+
+            task.Archived = true;
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
         [HttpPut("restore/{id}")]
         public async Task<IActionResult> RestoreTask(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var task = await _context.Tasks.FindAsync(id);
-            if (task == null)
-            {
-                return NotFound();
-            }
+
+            if (task == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && task.TenantId != tenantId) return NotFound();
 
             task.Archived = false;
-            _context.Entry(task).State = EntityState.Modified;
-            
-            try 
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!TaskExists(id)) throw;
-            }
-
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // DELETE: api/Tasks/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTask(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var task = await _context.Tasks.FindAsync(id);
-            if (task == null)
-            {
-                return NotFound();
-            }
 
-            // Soft delete
-            task.Archived = true;
-            _context.Entry(task).State = EntityState.Modified;
-            
+            if (task == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && task.TenantId != tenantId) return NotFound();
+
+            _context.Tasks.Remove(task);
             await _context.SaveChangesAsync();
-
             return NoContent();
-        }
-
-        private bool TaskExists(string id)
-        {
-            return _context.Tasks.Any(e => e.Id == id);
         }
     }
 }

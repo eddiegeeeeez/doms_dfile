@@ -26,8 +26,8 @@ export function LoginForm({ className, onLogin, ...props }: LoginFormProps) {
     if (onLogin) {
       try {
         await onLogin(email, password);
-      } catch {
-        setError("Invalid email or password. Please try again.");
+      } catch (err: any) {
+        setError(err?.message ?? "An unexpected error occurred. Please try again.");
         setIsLoading(false);
       }
     } else {
@@ -38,7 +38,8 @@ export function LoginForm({ className, onLogin, ...props }: LoginFormProps) {
   return (
     <div className={cn("flex flex-col gap-10", className)} {...props}>
       <div className="space-y-4 text-center lg:text-left">
-        <div className="flex justify-center lg:justify-start mb-4">
+        {/* Logo — hidden on desktop because left panel shows it */}
+        <div className="flex justify-center lg:justify-start mb-4 lg:hidden">
           <img src="/AMS.svg" alt="AMS Logo" className="h-16 w-auto dark:hidden" />
           <img src="/AMS_dark.svg" alt="AMS Logo" className="h-16 w-auto hidden dark:block" />
         </div>

@@ -4,13 +4,13 @@ import { Package } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AddAssetForm } from "@/components/forms/add-asset-form";
 
-import { Asset, Category } from "@/types/asset";
+import { Asset, Category, CreateAssetPayload } from "@/types/asset";
 
 interface AddAssetModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     categories: Category[];
-    onAddAsset?: (asset: Asset) => void;
+    onAddAsset?: (payload: CreateAssetPayload, id?: string) => void;
     initialData?: Asset;
     mode?: "create" | "edit";
 }

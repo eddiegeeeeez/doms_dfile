@@ -1,4 +1,5 @@
 using DFile.backend.Data;
+using DFile.backend.DTOs;
 using DFile.backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,8 +9,8 @@ namespace DFile.backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
-    public class AssetCategoriesController : ControllerBase
+    [Authorize(Roles = "Admin,Finance,Super Admin")]
+    public class AssetCategoriesController : TenantAwareController
     {
         private readonly AppDbContext _context;
 
@@ -18,168 +19,154 @@ namespace DFile.backend.Controllers
             _context = context;
         }
 
-        // GET: api/AssetCategories
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<object>>> GetAssetCategories([FromQuery] bool showArchived = false)
+        public async Task<ActionResult<IEnumerable<AssetCategoryResponseDto>>> GetAssetCategories([FromQuery] bool showArchived = false)
         {
-            var categories = await _context.AssetCategories
-                .Where(c => showArchived || c.Status != "Archived")
-                .ToListAsync();
+            var tenantId = GetCurrentTenantId();
 
-            // Calculate item counts
-            var assetCounts = await _context.Assets
-                .GroupBy(a => a.Cat)
-                .Select(g => new { Name = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(x => x.Name, x => x.Count);
+            var categoriesQuery = _context.AssetCategories
+                .Where(c => showArchived || c.Status != "Archived");
 
-            var result = categories.Select(c => new 
+            if (!IsSuperAdmin() && tenantId.HasValue)
             {
-                c.Id,
-                c.Name,
-                c.Description,
-                c.Type,
-                c.Status,
-                Items = assetCounts.ContainsKey(c.Name) ? assetCounts[c.Name] : 0
-            });
+                categoriesQuery = categoriesQuery.Where(c => c.TenantId == null || c.TenantId == tenantId);
+            }
+
+            var categories = await categoriesQuery.ToListAsync();
+
+            var assetCountsQuery = _context.Assets.AsQueryable();
+            if (!IsSuperAdmin() && tenantId.HasValue)
+            {
+                assetCountsQuery = assetCountsQuery.Where(a => a.TenantId == tenantId);
+            }
+
+            var assetCounts = await assetCountsQuery
+                .Where(a => a.CategoryId != null)
+                .GroupBy(a => a.CategoryId!)
+                .Select(g => new { CategoryId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.CategoryId, x => x.Count);
+
+            var result = categories.Select(c => new AssetCategoryResponseDto
+            {
+                Id = c.Id,
+                CategoryName = c.CategoryName,
+                HandlingType = c.HandlingType,
+                Description = c.Description,
+                Status = c.Status,
+                TenantId = c.TenantId,
+                Items = assetCounts.TryGetValue(c.Id, out var count) ? count : 0
+            }).ToList();
 
             return Ok(result);
         }
 
-        // GET: api/AssetCategories/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<AssetCategory>> GetAssetCategory(string id)
+        public async Task<ActionResult<AssetCategoryResponseDto>> GetAssetCategory(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var category = await _context.AssetCategories.FindAsync(id);
 
-            if (category == null)
-            {
+            if (category == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && category.TenantId != null && category.TenantId != tenantId)
                 return NotFound();
-            }
 
-            return category;
+            var itemCount = await _context.Assets
+                .Where(a => a.CategoryId == id)
+                .Where(a => IsSuperAdmin() || !tenantId.HasValue || a.TenantId == tenantId)
+                .CountAsync();
+
+            return Ok(new AssetCategoryResponseDto
+            {
+                Id = category.Id,
+                CategoryName = category.CategoryName,
+                HandlingType = category.HandlingType,
+                Description = category.Description,
+                Status = category.Status,
+                TenantId = category.TenantId,
+                Items = itemCount
+            });
         }
 
-        // POST: api/AssetCategories
         [HttpPost]
-        public async Task<ActionResult<AssetCategory>> PostAssetCategory(AssetCategory category)
+        [Authorize(Roles = "Admin,Finance,Super Admin")]
+        public async Task<ActionResult<AssetCategoryResponseDto>> PostAssetCategory(CreateAssetCategoryDto dto)
         {
-            _context.AssetCategories.Add(category);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (CategoryExists(category.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            var tenantId = GetCurrentTenantId();
 
-            return CreatedAtAction("GetAssetCategory", new { id = category.Id }, category);
+            var category = new AssetCategory
+            {
+                Id = Guid.NewGuid().ToString(),
+                CategoryName = dto.CategoryName,
+                HandlingType = dto.HandlingType,
+                Description = dto.Description,
+                Status = "Active",
+                TenantId = IsSuperAdmin() ? null : tenantId
+            };
+
+            _context.AssetCategories.Add(category);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetAssetCategory", new { id = category.Id }, new AssetCategoryResponseDto
+            {
+                Id = category.Id,
+                CategoryName = category.CategoryName,
+                HandlingType = category.HandlingType,
+                Description = category.Description,
+                Status = category.Status,
+                TenantId = category.TenantId,
+                Items = 0
+            });
         }
 
-        // PUT: api/AssetCategories/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutAssetCategory(string id, AssetCategory category)
+        [Authorize(Roles = "Admin,Finance,Super Admin")]
+        public async Task<IActionResult> PutAssetCategory(string id, UpdateAssetCategoryDto dto)
         {
-            if (id != category.Id)
-            {
-                return BadRequest();
-            }
+            var tenantId = GetCurrentTenantId();
+            var existing = await _context.AssetCategories.FindAsync(id);
 
-            _context.Entry(category).State = EntityState.Modified;
+            if (existing == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && existing.TenantId != null && existing.TenantId != tenantId)
+                return NotFound();
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CategoryExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            existing.CategoryName = dto.CategoryName;
+            existing.HandlingType = dto.HandlingType;
+            existing.Description = dto.Description;
 
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // PUT: api/AssetCategories/archive/5
         [HttpPut("archive/{id}")]
+        [Authorize(Roles = "Admin,Finance,Super Admin")]
         public async Task<IActionResult> ArchiveAssetCategory(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var category = await _context.AssetCategories.FindAsync(id);
-            if (category == null)
-            {
+
+            if (category == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && category.TenantId != null && category.TenantId != tenantId)
                 return NotFound();
-            }
 
             category.Status = "Archived";
-            _context.Entry(category).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CategoryExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
+            await _context.SaveChangesAsync();
             return NoContent();
         }
-        
-        // PUT: api/AssetCategories/restore/5
+
         [HttpPut("restore/{id}")]
+        [Authorize(Roles = "Admin,Finance,Super Admin")]
         public async Task<IActionResult> RestoreAssetCategory(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var category = await _context.AssetCategories.FindAsync(id);
-            if (category == null)
-            {
+
+            if (category == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && category.TenantId != null && category.TenantId != tenantId)
                 return NotFound();
-            }
 
             category.Status = "Active";
-            _context.Entry(category).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CategoryExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
+            await _context.SaveChangesAsync();
             return NoContent();
-        }
-
-        private bool CategoryExists(string id)
-        {
-            return _context.AssetCategories.Any(e => e.Id == id);
         }
     }
 }

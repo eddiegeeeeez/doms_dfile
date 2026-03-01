@@ -3,11 +3,24 @@ import api from '@/lib/api';
 import { Task } from '@/types/task';
 import { toast } from 'sonner';
 
+interface CreateTaskPayload {
+    title: string;
+    description?: string;
+    priority?: string;
+    status?: string;
+    assignedTo?: string;
+    dueDate?: string;
+}
+
+interface UpdateTaskPayload extends CreateTaskPayload {
+    archived?: boolean;
+}
+
 export function useTasks(showArchived: boolean = false) {
     return useQuery({
         queryKey: ['tasks', showArchived],
         queryFn: async () => {
-             const { data } = await api.get<Task[]>('/api/tasks', {
+            const { data } = await api.get<Task[]>('/api/tasks', {
                 params: { showArchived }
             });
             return data;
@@ -19,8 +32,8 @@ export function useAddTask() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (newTask: Omit<Task, 'id' | 'createdAt'>) => {
-            const { data } = await api.post<Task>('/api/tasks', newTask);
+        mutationFn: async (payload: CreateTaskPayload) => {
+            const { data } = await api.post<Task>('/api/tasks', payload);
             return data;
         },
         onSuccess: () => {
@@ -37,8 +50,8 @@ export function useUpdateTask() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (updatedTask: Task) => {
-            const { data } = await api.put<Task>(`/api/tasks/${updatedTask.id}`, updatedTask);
+        mutationFn: async ({ id, payload }: { id: string; payload: UpdateTaskPayload }) => {
+            const { data } = await api.put<Task>(`/api/tasks/${id}`, payload);
             return data;
         },
         onSuccess: () => {
@@ -56,12 +69,7 @@ export function useArchiveTask() {
 
     return useMutation({
         mutationFn: async (id: string) => {
-              // Ensure we have a proper archive endpoint or use restore logic (archived=true).
-              // Since we didn't add "archive" endpoint to TasksController, I will assume it exists or use restore logic in reverse if possible?
-              // Wait, I saw "RestoreTask" in controller. I did NOT see "ArchiveTask".
-              // I should verify if I can just use "PutTask" with archived=true.
-             const { data: task } = await api.get<Task>(`/api/tasks/${id}`);
-             await api.put(`/api/tasks/${id}`, { ...task, archived: true });
+            await api.put(`/api/tasks/archive/${id}`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tasks'] });

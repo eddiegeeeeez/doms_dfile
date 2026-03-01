@@ -6,14 +6,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Category, AssetType } from "@/types/asset";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Category, CreateCategoryPayload } from "@/types/asset";
+
+const HANDLING_TYPE_LABELS: Record<number, string> = { 0: "Fixed", 1: "Consumable", 2: "Movable" };
+const HANDLING_TYPE_STYLES: Record<number, string> = {
+    0: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    1: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+    2: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+};
 
 interface ManageCategoriesModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     categories: Category[];
-    onAddCategory: (cat: { id: string; name: string; description: string; type: AssetType }) => void;
-    onUpdateCategory: (id: string, data: Partial<Category>) => void;
+    onAddCategory: (cat: CreateCategoryPayload) => void;
+    onUpdateCategory: (id: string, data: CreateCategoryPayload) => void;
     onArchiveCategory: (id: string) => void;
 }
 
@@ -22,10 +30,10 @@ export function ManageCategoriesModal({ open, onOpenChange, categories, onAddCat
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const [newCat, setNewCat] = useState<{ name: string; description: string; type: AssetType }>({
-        name: "",
+    const [newCat, setNewCat] = useState<CreateCategoryPayload>({
+        categoryName: "",
         description: "",
-        type: "Moveable"
+        handlingType: 2
     });
 
     const handleAdd = (e: React.FormEvent) => {
@@ -34,14 +42,14 @@ export function ManageCategoriesModal({ open, onOpenChange, categories, onAddCat
             onUpdateCategory(editingId, newCat);
             setEditingId(null);
         } else {
-            onAddCategory({ ...newCat, id: `cat_${Date.now()}` });
+            onAddCategory(newCat);
         }
-        setNewCat({ name: "", description: "", type: "Moveable" });
+        setNewCat({ categoryName: "", description: "", handlingType: 2 });
         setIsAdding(false);
     };
 
     const handleEdit = (cat: Category) => {
-        setNewCat({ name: cat.name, description: cat.description, type: cat.type });
+        setNewCat({ categoryName: cat.categoryName, description: cat.description, handlingType: cat.handlingType });
         setEditingId(cat.id);
         setIsAdding(true);
         setTimeout(() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), 100);
@@ -50,7 +58,7 @@ export function ManageCategoriesModal({ open, onOpenChange, categories, onAddCat
     const handleCancel = () => {
         setIsAdding(false);
         setEditingId(null);
-        setNewCat({ name: "", description: "", type: "Moveable" });
+        setNewCat({ categoryName: "", description: "", handlingType: 2 });
     };
 
     return (
@@ -73,13 +81,12 @@ export function ManageCategoriesModal({ open, onOpenChange, categories, onAddCat
                 </DialogHeader>
 
                 <div ref={scrollRef} className="p-6 overflow-y-auto flex-1 space-y-6">
-                    {/* Add Trigger / Form - Only in Active View */}
                     {view === 'active' && (
                         !isAdding ? (
                             <button
                                 onClick={() => {
                                     setEditingId(null);
-                                    setNewCat({ name: "", description: "", type: "Moveable" });
+                                    setNewCat({ categoryName: "", description: "", handlingType: 2 });
                                     setIsAdding(true);
                                 }}
                                 className="w-full py-6 border-2 border-dashed border-border rounded-2xl flex items-center justify-center gap-3 text-muted-foreground hover:text-primary hover:border-primary hover:bg-primary/5 transition-all group"
@@ -92,11 +99,18 @@ export function ManageCategoriesModal({ open, onOpenChange, categories, onAddCat
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="space-y-2 md:col-span-2">
                                         <Label className="text-xs font-medium text-muted-foreground">Category Name</Label>
-                                        <Input required value={newCat.name} onChange={(e) => setNewCat({ ...newCat, name: e.target.value })} placeholder="e.g. Smart Appliances" className="border-input bg-background" />
+                                        <Input required value={newCat.categoryName} onChange={(e) => setNewCat({ ...newCat, categoryName: e.target.value })} placeholder="e.g. Smart Appliances" className="border-input bg-background" />
                                     </div>
                                     <div className="space-y-2 md:col-span-1">
-                                        <Label className="text-xs font-medium text-muted-foreground">Asset Type</Label>
-                                        <Input required value={newCat.type} onChange={(e) => setNewCat({ ...newCat, type: e.target.value })} placeholder="e.g. Moveable" className="border-input bg-background" />
+                                        <Label className="text-xs font-medium text-muted-foreground">Handling Type</Label>
+                                        <Select value={String(newCat.handlingType)} onValueChange={(v) => setNewCat({ ...newCat, handlingType: Number(v) })}>
+                                            <SelectTrigger className="border-input bg-background"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="0">Fixed</SelectItem>
+                                                <SelectItem value="1">Consumable</SelectItem>
+                                                <SelectItem value="2">Movable</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="space-y-2 md:col-span-3">
                                         <Label className="text-xs font-medium text-muted-foreground">Description</Label>
@@ -115,22 +129,18 @@ export function ManageCategoriesModal({ open, onOpenChange, categories, onAddCat
                         )
                     )}
 
-                    {/* Category List */}
                     <div className="grid grid-cols-1 gap-3">
                         {categories.filter(cat => view === 'active' ? cat.status !== 'Archived' : cat.status === 'Archived').map((cat) => (
                             <div key={cat.id} className={`group flex items-center justify-between p-5 rounded-2xl border border-border transition-all ${cat.status === 'Archived' ? 'bg-muted/30 opacity-60 grayscale' : 'bg-card/50 hover:border-primary/20 hover:bg-card'}`}>
                                 <div className="flex items-center gap-5">
                                     <div className="p-3 bg-primary/10  text-primary"><LayoutGrid size={18} /></div>
                                     <div className="flex-1 min-w-0 grid gap-0.5">
-                                        <h4 className="text-sm font-bold text-foreground truncate">{cat.name}</h4>
+                                        <h4 className="text-sm font-bold text-foreground truncate">{cat.categoryName}</h4>
                                         <p className="text-xs font-medium text-muted-foreground truncate">{cat.description}</p>
                                     </div>
                                     <div className="px-4 shrink-0">
-                                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${cat.type === "Fixed" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
-                                            cat.type === "Moveable" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                                                "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                                            }`}>
-                                            {cat.type}
+                                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${HANDLING_TYPE_STYLES[cat.handlingType] || HANDLING_TYPE_STYLES[0]}`}>
+                                            {HANDLING_TYPE_LABELS[cat.handlingType] || "Fixed"}
                                         </span>
                                     </div>
                                 </div>

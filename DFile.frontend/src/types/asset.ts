@@ -1,9 +1,12 @@
 export interface Asset {
     id: string;
+    tagNumber?: string;
     desc: string;
-    cat: string;
+    categoryId?: string;
+    categoryName?: string;
+    handlingType?: number;
     status: string;
-    room: string;
+    room?: string;
     image?: string;
     manufacturer?: string;
     model?: string;
@@ -13,42 +16,87 @@ export interface Asset {
     warrantyExpiry?: string;
     nextMaintenance?: string;
     notes?: string;
-    docs?: string[];
+    documents?: string;
     value: number;
     usefulLifeYears?: number;
     purchasePrice?: number;
     currentBookValue?: number;
     monthlyDepreciation?: number;
+    tenantId?: number;
+    archived?: boolean;
 }
 
+export interface CreateAssetPayload {
+    tagNumber: string;
+    desc: string;
+    categoryId: string;
+    status?: string;
+    room?: string;
+    image?: string;
+    manufacturer?: string;
+    model?: string;
+    serialNumber?: string;
+    purchaseDate?: string;
+    vendor?: string;
+    value?: number;
+    usefulLifeYears?: number;
+    purchasePrice?: number;
+    warrantyExpiry?: string;
+    notes?: string;
+    documents?: string;
+}
+
+export interface UpdateAssetPayload extends CreateAssetPayload {
+    currentBookValue?: number;
+    monthlyDepreciation?: number;
+}
+
+export interface UpdateAssetFinancialPayload {
+    purchasePrice: number;
+    value: number;
+    usefulLifeYears: number;
+    currentBookValue?: number;
+}
 
 export interface User {
-    name: string;
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
     role: UserRole;
     roleLabel: string;
     avatar?: string;
+    status: string;
+    tenantId?: number;
 }
 
-export type UserRole = 'Admin' | 'Maintenance' | 'Procurement' | 'Finance' | 'Super Admin';
+export type UserRole = 'Super Admin' | 'Admin' | 'Finance' | 'Maintenance';
 
 export type AssetType = string;
 
 export interface Category {
     id: string;
-    name: string;
+    categoryName: string;
     description: string;
-    type: AssetType;
+    handlingType: number;
     items: number;
     status: "Active" | "Archived";
+    tenantId?: number;
+}
+
+export interface CreateCategoryPayload {
+    categoryName: string;
+    handlingType: number;
+    description: string;
 }
 
 export interface Room {
     id: string;
-    unitId: string; // The Room Number/ID (e.g. 101)
-    name: string;   // The Room Name (e.g. Master Bedroom)
+    unitId: string;
+    name: string;
     categoryId: string;
-    categoryName?: string; // Optional for display
-    subCategoryName?: string; // Optional for display
+    categoryName?: string;
+    subCategoryName?: string;
     floor: string;
     maxOccupancy: number;
     status: "Available" | "Occupied" | "Maintenance" | "Deactivated";
@@ -66,7 +114,7 @@ export interface MaintenanceRecord {
     startDate?: string;
     endDate?: string;
     cost?: number;
-    attachments?: string[];
+    attachments?: string;
     dateReported: string;
     archived?: boolean;
 }
@@ -85,7 +133,7 @@ export interface PurchaseOrder {
     status: "Pending" | "Approved" | "Delivered" | "Cancelled";
     requestedBy: string;
     createdAt: string;
-    assetId?: string; // linked asset ID once delivered
+    assetId?: string;
     archived?: boolean;
 }
 
@@ -104,13 +152,13 @@ export interface Employee {
 
 export interface RoomCategory {
     id: string;
-    name: string; // The Main Category (e.g. Deluxe)
-    subCategory: string; // The Sub Category (e.g. Double Bed)
+    name: string;
+    subCategory: string;
     description: string;
     baseRate: number;
-    maxOccupancy: number; // Keep existing but maybe optional? User didn't say to remove but focused on inputting cat/subcat.
+    maxOccupancy: number;
     status: "Active" | "Archived";
-    archived?: boolean; // For archive logic
+    archived?: boolean;
 }
 
 export interface Role {
@@ -118,11 +166,6 @@ export interface Role {
     designation: string;
     department: string;
     scope: string;
-    // Optional fields for backward compatibility or future use
-    title?: string;
-    description?: string;
-    permissions?: string[];
-    users?: number;
     status?: "Active" | "Archived";
 }
 
@@ -131,8 +174,68 @@ export interface Department {
     name: string;
     description: string;
     head: string;
-    itemCount: number;
     status: "Active" | "Archived";
 }
 
+export interface AuditLog {
+    id: number;
+    action: string;
+    entityType: string;
+    entityId?: string;
+    userId?: number;
+    userName?: string;
+    tenantId?: number;
+    oldValues?: string;
+    newValues?: string;
+    ipAddress?: string;
+    createdAt: string;
+}
 
+export interface AuditSummary {
+    totalLogs: number;
+    todayLogs: number;
+    weekLogs: number;
+    byAction: Record<string, number>;
+    byEntity: Record<string, number>;
+}
+
+export interface RolePermissionEntry {
+    id: number;
+    moduleName: string;
+    canView: boolean;
+    canCreate: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+    canApprove: boolean;
+    canArchive: boolean;
+}
+
+export interface RoleTemplate {
+    id: number;
+    name: string;
+    description?: string;
+    isSystem: boolean;
+    createdAt: string;
+    permissions: RolePermissionEntry[];
+    tenantCount: number;
+}
+
+export interface PlatformMetrics {
+    totalTenants: number;
+    activeTenants: number;
+    suspendedTenants: number;
+    totalUsers: number;
+    totalAssets: number;
+    totalRooms: number;
+    totalMaintenanceRecords: number;
+    pendingOrders: number;
+    openMaintenanceRecords: number;
+}
+
+export interface RiskIndicators {
+    expiredWarranties: number;
+    overdueMaintenanceCount: number;
+    highPriorityPending: number;
+    fullyDepreciated: number;
+    suspendedTenants: number;
+}

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DFile.backend.Models
 {
@@ -17,15 +18,18 @@ namespace DFile.backend.Models
         public string? SerialNumber { get; set; }
 
         public decimal PurchasePrice { get; set; }
-        public string? PurchaseDate { get; set; }
+        public DateTime? PurchaseDate { get; set; }
         public int UsefulLifeYears { get; set; }
 
         public string Status { get; set; } = "Pending"; // Pending | Approved | Delivered | Cancelled
         public string? RequestedBy { get; set; }
-        public string CreatedAt { get; set; } = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public string? AssetId { get; set; }
 
         public bool Archived { get; set; } = false;
         public int? TenantId { get; set; }
+
+        [ForeignKey("TenantId")]
+        public Tenant? Tenant { get; set; }
     }
 }

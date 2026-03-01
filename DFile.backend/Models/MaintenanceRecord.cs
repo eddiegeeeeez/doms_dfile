@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DFile.backend.Models
 {
@@ -9,6 +10,10 @@ namespace DFile.backend.Models
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
         public string AssetId { get; set; } = string.Empty;
+
+        [ForeignKey("AssetId")]
+        public Asset? Asset { get; set; }
+
         public string Description { get; set; } = string.Empty;
         public string Status { get; set; } = "Pending"; // Pending, In Progress, Completed, Scheduled
         public string Priority { get; set; } = "Medium"; // Low, Medium, High
@@ -23,5 +28,8 @@ namespace DFile.backend.Models
         public bool Archived { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public int? TenantId { get; set; }
+
+        [ForeignKey("TenantId")]
+        public Tenant? Tenant { get; set; }
     }
 }

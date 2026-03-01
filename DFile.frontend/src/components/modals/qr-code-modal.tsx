@@ -20,7 +20,7 @@ export function QRCodeModal({ open, onOpenChange, asset }: QRCodeModalProps) {
     const qrData = JSON.stringify({
         id: asset.id,
         name: asset.desc,
-        category: asset.cat,
+        category: asset.categoryName,
         status: asset.status,
         manufacturer: asset.manufacturer,
         model: asset.model,
@@ -58,7 +58,7 @@ export function QRCodeModal({ open, onOpenChange, asset }: QRCodeModalProps) {
                                     {asset.id}
                                 </span>
                                 <span className="text-xs uppercase font-bold tracking-wider text-muted-foreground border border-border px-2 py-1 rounded-md">
-                                    {asset.cat}
+                                    {asset.categoryName}
                                 </span>
                             </div>
                         </div>

@@ -28,5 +28,8 @@ namespace DFile.backend.Models
         public bool Archived { get; set; }
         
         public int? TenantId { get; set; }
+
+        [ForeignKey("TenantId")]
+        public Tenant? Tenant { get; set; }
     }
 }

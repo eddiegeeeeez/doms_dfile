@@ -123,89 +123,83 @@ export function FinanceDashboard() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="mb-4">
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
-                    Dashboard
-                </h1>
-            </div>
-
+        <div className="space-y-8">
             {/* KPI Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="shadow-sm border-border">
-                    <CardContent className="p-4 flex flex-col justify-between space-y-2 h-full">
-                        <div className="flex justify-between items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                <Card>
+                    <div className="p-6 space-y-4">
+                        <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-muted-foreground">Portfolio Value</p>
-                            <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-600">
-                                <PhilippinePeso size={18} />
+                            <div className="h-11 w-11 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                                <PhilippinePeso className="h-5 w-5 text-emerald-600" />
                             </div>
                         </div>
                         <div>
-                            <h3 className="text-2xl font-bold text-foreground">₱{(financialStats.totalBookValue / 1000000).toFixed(1)}M</h3>
-                            <p className="text-xs text-muted-foreground mt-1">Original: ₱{(financialStats.totalCost / 1000000).toFixed(1)}M</p>
+                            <p className="text-3xl font-bold tracking-tight">₱{(financialStats.totalBookValue / 1000000).toFixed(1)}M</p>
+                            <p className="text-sm text-muted-foreground mt-1">Original: ₱{(financialStats.totalCost / 1000000).toFixed(1)}M</p>
                         </div>
-                    </CardContent>
+                    </div>
                 </Card>
 
-                <Card className="shadow-sm border-border">
-                    <CardContent className="p-4 flex flex-col justify-between space-y-2 h-full">
-                        <div className="flex justify-between items-start">
+                <Card>
+                    <div className="p-6 space-y-4">
+                        <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-muted-foreground">Monthly Depreciation</p>
-                            <div className="p-2 bg-amber-500/10 rounded-lg text-amber-600">
-                                <TrendingDown size={18} />
+                            <div className="h-11 w-11 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                                <TrendingDown className="h-5 w-5 text-amber-600" />
                             </div>
                         </div>
                         <div>
-                            <h3 className="text-2xl font-bold text-foreground">₱{financialStats.monthlyDepreciation.toLocaleString()}</h3>
-                            <p className="text-xs text-muted-foreground mt-1">Accumulated: ₱{(financialStats.accumulatedDepreciation / 1000000).toFixed(2)}M</p>
+                            <p className="text-3xl font-bold tracking-tight">₱{financialStats.monthlyDepreciation.toLocaleString()}</p>
+                            <p className="text-sm text-muted-foreground mt-1">Accumulated: ₱{(financialStats.accumulatedDepreciation / 1000000).toFixed(2)}M</p>
                         </div>
-                    </CardContent>
+                    </div>
                 </Card>
 
-                <Card className="shadow-sm border-border">
-                    <CardContent className="p-4 flex flex-col justify-between space-y-2 h-full">
-                        <div className="flex justify-between items-start">
+                <Card>
+                    <div className="p-6 space-y-4">
+                        <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-muted-foreground">YTD Spend</p>
-                            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600">
-                                <TrendingUp size={18} />
+                            <div className="h-11 w-11 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                <TrendingUp className="h-5 w-5 text-blue-600" />
                             </div>
                         </div>
                         <div>
-                            <h3 className="text-2xl font-bold text-foreground">₱{spendingStats.totalProcurement.toLocaleString()}</h3>
-                            <p className="text-xs text-muted-foreground mt-1">Across {orders.length} orders</p>
+                            <p className="text-3xl font-bold tracking-tight">₱{spendingStats.totalProcurement.toLocaleString()}</p>
+                            <p className="text-sm text-muted-foreground mt-1">Across {orders.length} orders</p>
                         </div>
-                    </CardContent>
+                    </div>
                 </Card>
 
-                <Card className="shadow-sm border-border">
-                    <CardContent className="p-4 flex flex-col justify-between space-y-2 h-full">
-                        <div className="flex justify-between items-start">
+                <Card>
+                    <div className="p-6 space-y-4">
+                        <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-muted-foreground">Top Cost Center</p>
-                            <div className="p-2 bg-purple-500/10 rounded-lg text-purple-600">
-                                <Building2 size={18} />
+                            <div className="h-11 w-11 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                                <Building2 className="h-5 w-5 text-purple-600" />
                             </div>
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-foreground truncate">{roomStats[0]?.room || "N/A"}</h3>
-                            <p className="text-xs text-muted-foreground mt-1">₱{(roomStats[0]?.totalValue || 0).toLocaleString()} in assets</p>
+                            <p className="text-2xl font-bold tracking-tight truncate">{roomStats[0]?.room || "N/A"}</p>
+                            <p className="text-sm text-muted-foreground mt-1">₱{(roomStats[0]?.totalValue || 0).toLocaleString()} in assets</p>
                         </div>
-                    </CardContent>
+                    </div>
                 </Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Cost Distribution */}
-                <Card className="border-border  shadow-sm">
-                    <CardHeader className="border-b border-border bg-muted/40 py-4 px-6 rounded-t-xl">
-                        <CardTitle className="text-base font-semibold">Cost by Room / Location</CardTitle>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Cost by Room / Location</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-6">
-                        <div className="space-y-4">
-                            {roomStats.map((room, i) => (
-                                <div key={room.room} className="space-y-1">
+                    <CardContent>
+                        <div className="space-y-5">
+                            {roomStats.map((room) => (
+                                <div key={room.room} className="space-y-2">
                                     <div className="flex justify-between text-sm">
                                         <span className="font-medium">{room.room}</span>
-                                        <span className="text-muted-foreground">₱{room.totalValue.toLocaleString()}</span>
+                                        <span className="text-muted-foreground font-mono">₱{room.totalValue.toLocaleString()}</span>
                                     </div>
                                     <Progress value={(room.totalValue / (roomStats[0]?.totalValue || 1)) * 100} className="h-2" />
                                 </div>
@@ -215,19 +209,19 @@ export function FinanceDashboard() {
                 </Card>
 
                  {/* Vendor Spend */}
-                <Card className="border-border  shadow-sm">
-                    <CardHeader className="border-b border-border bg-muted/40 py-4 px-6 rounded-t-xl">
-                         <CardTitle className="text-base font-semibold">Top Vendor Spend</CardTitle>
+                <Card>
+                    <CardHeader>
+                         <CardTitle>Top Vendor Spend</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-6">
-                        <div className="space-y-4">
+                    <CardContent>
+                        <div className="space-y-3">
                              {spendingStats.sortedVendors.map((vendor, i) => (
-                                <div key={vendor.vendor} className="flex items-center justify-between p-3 border border-border rounded-lg bg-card hover:bg-muted/30 transition-colors">
+                                <div key={vendor.vendor} className="flex items-center justify-between p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
                                     <div className="flex items-center gap-3">
-                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                                        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
                                             {i + 1}
                                         </div>
-                                        <span className="font-medium text-sm">{vendor.vendor}</span>
+                                        <span className="font-medium">{vendor.vendor}</span>
                                     </div>
                                     <span className="font-mono text-sm">₱{vendor.amount.toLocaleString()}</span>
                                 </div>

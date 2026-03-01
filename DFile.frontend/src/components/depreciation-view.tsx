@@ -95,7 +95,7 @@ export function DepreciationView({ onAssetClick }: DepreciationViewProps) {
             if (statusFilter === "Near End-of-Life" && !asset.isNearEndOfLife) return false;
 
             if (roomFilter !== "All" && asset.room !== roomFilter) return false;
-            if (categoryFilter !== "All" && asset.cat !== categoryFilter) return false;
+            if (categoryFilter !== "All" && asset.categoryName !== categoryFilter) return false;
 
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
@@ -148,7 +148,7 @@ export function DepreciationView({ onAssetClick }: DepreciationViewProps) {
 
     // --- Unique Select Options ---
     const uniqueRooms = useMemo(() => Array.from(new Set(assets.map(a => a.room || "Unassigned").filter(Boolean))), [assets]);
-    const uniqueCategories = useMemo(() => Array.from(new Set(assets.map(a => a.cat).filter(Boolean))), [assets]);
+    const uniqueCategories = useMemo(() => Array.from(new Set(assets.map(a => a.categoryName).filter((v): v is string => Boolean(v)))), [assets]);
 
     // Format Currency
     const fmt = (val: number) => new Intl.NumberFormat('en-US', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
@@ -165,22 +165,22 @@ export function DepreciationView({ onAssetClick }: DepreciationViewProps) {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-                <div className="flex flex-1 gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 items-center">
-                    <div className="relative flex-1 max-w-sm min-w-[200px]">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
+                <div className="flex flex-1 flex-wrap gap-3 w-full lg:w-auto items-center">
+                    <div className="relative flex-1 max-w-sm min-w-[220px]">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Search asset, ID, or room..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-9 text-sm"
+                            className="pl-9 h-10"
                         />
                     </div>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[160px] h-10 bg-background text-sm">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                                <Filter className="w-3.5 h-3.5" />
-                                <span className="text-foreground">{statusFilter}</span>
+                        <SelectTrigger className="w-[170px] h-10">
+                            <div className="flex items-center gap-2">
+                                <Filter className="w-4 h-4 text-muted-foreground" />
+                                <SelectValue />
                             </div>
                         </SelectTrigger>
                         <SelectContent>
@@ -192,10 +192,10 @@ export function DepreciationView({ onAssetClick }: DepreciationViewProps) {
                         </SelectContent>
                     </Select>
                     <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                        <SelectTrigger className="w-[160px] h-10 bg-background text-sm">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                                <Package className="w-3.5 h-3.5" />
-                                <span className="text-foreground">{categoryFilter === 'All' ? 'Category' : categoryFilter}</span>
+                        <SelectTrigger className="w-[170px] h-10">
+                            <div className="flex items-center gap-2">
+                                <Package className="w-4 h-4 text-muted-foreground" />
+                                <SelectValue placeholder="Category" />
                             </div>
                         </SelectTrigger>
                         <SelectContent>
@@ -205,30 +205,30 @@ export function DepreciationView({ onAssetClick }: DepreciationViewProps) {
                     </Select>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <div className="bg-muted p-1 rounded-lg flex items-center mr-2 h-10">
+                <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
+                    <div className="bg-muted/50 p-1 rounded-xl flex items-center h-11">
                         <Button 
                             variant={viewMode === "assets" ? "secondary" : "ghost"} 
                             size="sm" 
                             onClick={() => setViewMode("assets")}
-                            className="h-8 text-xs font-medium bg-background shadow-sm"
+                            className={cn("h-9 px-3 text-sm gap-1.5", viewMode === "assets" && "shadow-sm")}
                         >
-                            <Package className="w-3.5 h-3.5 mr-1.5" /> Asset View
+                            <Package className="w-4 h-4" /> Assets
                         </Button>
                         <Button 
                             variant={viewMode === "rooms" ? "secondary" : "ghost"} 
                             size="sm" 
                             onClick={() => setViewMode("rooms")}
-                            className="h-8 text-xs font-medium"
+                            className={cn("h-9 px-3 text-sm gap-1.5", viewMode === "rooms" && "shadow-sm")}
                         >
-                            <Building2 className="w-3.5 h-3.5 mr-1.5" /> Room View
+                            <Building2 className="w-4 h-4" /> Rooms
                         </Button>
                     </div>
-                    <Button variant="outline" size="sm" className="h-10 text-sm font-medium">
-                        <Lock className="w-4 h-4 mr-2" /> Lock Period
+                    <Button variant="outline" size="sm" className="h-10 px-4 gap-2">
+                        <Lock className="w-4 h-4" /> Lock Period
                     </Button>
-                     <Button variant="outline" size="sm" className="h-10 text-sm font-medium">
-                        <Download className="w-4 h-4 mr-2" /> Export
+                     <Button variant="outline" size="sm" className="h-10 px-4 gap-2">
+                        <Download className="w-4 h-4" /> Export
                     </Button>
                 </div>
             </div>
@@ -305,8 +305,8 @@ export function DepreciationView({ onAssetClick }: DepreciationViewProps) {
                                 )}
                             </TableBody>
                         </Table>
-                         <div className="p-4 border-t border-border bg-muted/5 flex items-center justify-between">
-                            <div className="text-xs text-muted-foreground font-normal">
+                         <div className="px-6 py-4 border-t border-border/40 flex items-center justify-between">
+                            <div className="text-sm text-muted-foreground">
                                 Showing {filteredAssets.length} assets
                             </div>
                         </div>

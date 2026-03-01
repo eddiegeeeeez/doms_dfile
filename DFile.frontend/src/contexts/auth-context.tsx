@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { User } from "@/types/asset";
+import { User, UserRole } from "@/types/asset";
 import api from "@/lib/api"; // Centralized API client
 
 interface AuthContextType {
@@ -12,6 +12,8 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<void>;
     logout: () => void;
 }
+
+const VALID_ROLES: UserRole[] = ["Super Admin", "Admin", "Finance", "Maintenance"];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -29,22 +31,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const storedToken = localStorage.getItem("dfile_token");
 
             if (storedUser && storedToken) {
-                try {
-                    // 1. Optimistically set state
-                    const parsedUser = JSON.parse(storedUser);
-                    setUser(parsedUser);
-                    setToken(storedToken);
-                    setIsLoggedIn(true);
+                // 1. Restore from localStorage immediately — this makes the page
+                //    render instantly without waiting for a network round-trip.
+                const parsedUser = JSON.parse(storedUser);
 
-                    // 2. Validate with Backend using our centralized API client
-                    await api.get('/api/auth/me');
-
-                    // If we reach here, the token is valid (status 200-299)
-                } catch {
-                    logout();
+                // Guard: if localStorage has a stale schema (e.g. role is a
+                // label like "Tenant Administrator" instead of "Admin"), clear it
+                // and force re-login rather than driving a redirect loop.
+                if (!parsedUser.firstName || !VALID_ROLES.includes(parsedUser.role as UserRole)) {
+                    localStorage.removeItem("dfile_user");
+                    localStorage.removeItem("dfile_token");
+                    setIsLoading(false);
+                    return;
                 }
+
+                setUser(parsedUser);
+                setToken(storedToken);
+                setIsLoggedIn(true);
+                setIsLoading(false); // ← unblock rendering NOW
+
+                // 2. Background re-validation: refresh user from backend.
+                //    Runs silently after the page is already visible.
+                try {
+                    const { data: freshUser } = await api.get('/api/auth/me');
+                    setUser(freshUser);
+                    localStorage.setItem('dfile_user', JSON.stringify(freshUser));
+                } catch (error: any) {
+                    const status: number | undefined = error?.response?.status;
+                    if (status === 401 || status === 403) {
+                        // Token is genuinely invalid or expired — force re-login
+                        logout();
+                    }
+                    // Any other error (network, 5xx, timeout) → keep optimistic session
+                }
+            } else {
+                setIsLoading(false);
             }
-            setIsLoading(false);
         };
 
         initAuth();
@@ -63,9 +85,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem("dfile_user", JSON.stringify(userData));
             localStorage.setItem("dfile_token", token);
         } catch (error: any) {
-            // Handle Axios error structure
-            const message = error.response?.data?.message || error.message || "Login failed";
-            throw new Error(message);
+            const status: number | undefined = error.response?.status;
+            if (!error.response) {
+                // No response at all — network unreachable or DNS failure
+                throw new Error("Network error — cannot reach the server. Please check your connection and try again.");
+            } else if (status !== undefined && status >= 500) {
+                throw new Error("Internal server error — the server is currently unavailable. Please try again later.");
+            } else {
+                // 400 / 401 / 403 — invalid credentials or tenant issue
+                const message = error.response?.data?.message || "Invalid email or password. Please try again.";
+                throw new Error(message);
+            }
         }
     };
 

@@ -10,6 +10,7 @@ namespace DFile.backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Super Admin")]
     public class TenantsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -19,14 +20,6 @@ namespace DFile.backend.Controllers
             _context = context;
         }
 
-        // Only Super Admin can create tenants
-        // [Authorize(Roles = "Super Admin")] 
-        // Commenting out Authorize for now to allow testing without setting up Super Admin login flow first, 
-        // or assuming the user will handle role setup similarly. 
-        // However, prompt implies Super Admin creates it.
-        // I will adhere to the prompt and require authorization, but ensure I implement it correctly.
-        // Given existing roles are loose strings, I'll use Policy or simple Check.
-        
         [HttpPost]
         public async Task<ActionResult<Tenant>> CreateTenant([FromBody] CreateTenantDto dto)
         {
@@ -44,16 +37,18 @@ namespace DFile.backend.Controllers
             }
 
             var tenant = Tenant.Create(dto.TenantName, dto.SubscriptionPlan);
+            tenant.BusinessAddress = dto.BusinessAddress;
             
             _context.Tenants.Add(tenant);
             await _context.SaveChangesAsync(); // Save to get Tenant ID
 
             var adminUser = new User
             {
-                Name = dto.AdminName,
+                FirstName = dto.AdminFirstName,
+                LastName = dto.AdminLastName,
                 Email = dto.AdminEmail,
-                Role = "Tenant Admin",
-                RoleLabel = "Tenant Admin",
+                Role = "Admin",
+                RoleLabel = "Admin",
                 TenantId = tenant.Id,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.AdminPassword)
             };
@@ -80,15 +75,8 @@ namespace DFile.backend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Tenant>>> GetTenants()
         {
-            try
-            {
-                var tenants = await _context.Tenants.ToListAsync();
-                return Ok(tenants);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = ex.Message, stackTrace = ex.StackTrace });
-            }
+            var tenants = await _context.Tenants.ToListAsync();
+            return Ok(tenants);
         }
 
         [HttpPut("{id}/status")]
@@ -97,13 +85,70 @@ namespace DFile.backend.Controllers
             var tenant = await _context.Tenants.FindAsync(id);
             if (tenant == null) return NotFound();
 
-            if (dto.Status != "Active" && dto.Status != "Inactive" && dto.Status != "Archived")
-                return BadRequest("Invalid status. Must be Active, Inactive, or Archived.");
+            if (dto.Status != "Active" && dto.Status != "Inactive" && dto.Status != "Archived" && dto.Status != "Suspended")
+                return BadRequest("Invalid status. Must be Active, Inactive, Archived, or Suspended.");
 
             tenant.Status = dto.Status;
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Status updated", status = tenant.Status });
+        }
+
+        [HttpGet("metrics")]
+        public async Task<ActionResult> GetPlatformMetrics()
+        {
+            var totalTenants = await _context.Tenants.CountAsync();
+            var activeTenants = await _context.Tenants.CountAsync(t => t.Status == "Active");
+            var suspendedTenants = await _context.Tenants.CountAsync(t => t.Status == "Suspended");
+            var totalUsers = await _context.Users.CountAsync();
+            var totalAssets = await _context.Assets.CountAsync(a => !a.Archived);
+            var totalRooms = await _context.Rooms.CountAsync();
+            var totalMaintenanceRecords = await _context.MaintenanceRecords.CountAsync();
+            var pendingOrders = await _context.PurchaseOrders.CountAsync(p => p.Status == "Pending" && !p.Archived);
+            var openMaintenanceRecords = await _context.MaintenanceRecords.CountAsync(m => m.Status != "Completed" && !m.Archived);
+
+            return Ok(new
+            {
+                totalTenants,
+                activeTenants,
+                suspendedTenants,
+                totalUsers,
+                totalAssets,
+                totalRooms,
+                totalMaintenanceRecords,
+                pendingOrders,
+                openMaintenanceRecords
+            });
+        }
+
+        [HttpGet("risk-indicators")]
+        public async Task<ActionResult> GetRiskIndicators()
+        {
+            var now = DateTime.UtcNow;
+
+            var expiredWarranties = await _context.Assets
+                .CountAsync(a => !a.Archived && a.WarrantyExpiry != null && a.WarrantyExpiry < now);
+
+            var overdueMaintenanceCount = await _context.MaintenanceRecords
+                .CountAsync(m => !m.Archived && m.Status != "Completed" && m.EndDate != null && m.EndDate < now);
+
+            var highPriorityPending = await _context.MaintenanceRecords
+                .CountAsync(m => !m.Archived && m.Priority == "High" && m.Status == "Pending");
+
+            var fullyDepreciated = await _context.Assets
+                .CountAsync(a => !a.Archived && a.CurrentBookValue <= 0);
+
+            var suspendedTenants = await _context.Tenants
+                .CountAsync(t => t.Status == "Suspended");
+
+            return Ok(new
+            {
+                expiredWarranties,
+                overdueMaintenanceCount,
+                highPriorityPending,
+                fullyDepreciated,
+                suspendedTenants
+            });
         }
     }
 }

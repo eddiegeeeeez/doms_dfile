@@ -1,4 +1,5 @@
 using DFile.backend.Data;
+using DFile.backend.DTOs;
 using DFile.backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,8 +9,8 @@ namespace DFile.backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
-    public class RolesController : ControllerBase
+    [Authorize(Roles = "Admin,Super Admin")]
+    public class RolesController : TenantAwareController
     {
         private readonly AppDbContext _context;
 
@@ -18,74 +19,99 @@ namespace DFile.backend.Controllers
             _context = context;
         }
 
-        // GET: api/Roles
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Role>>> GetRoles()
+        public async Task<ActionResult<IEnumerable<Role>>> GetRoles([FromQuery] bool showArchived = false)
         {
-            return await _context.Roles.ToListAsync();
+            var tenantId = GetCurrentTenantId();
+            var query = _context.Roles.AsQueryable();
+
+            if (!IsSuperAdmin() && tenantId.HasValue)
+            {
+                query = query.Where(r => r.TenantId == tenantId);
+            }
+
+            if (!showArchived)
+            {
+                query = query.Where(r => r.Status != "Archived");
+            }
+
+            return await query.ToListAsync();
         }
 
-        // GET: api/Roles/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<Role>> GetRole(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var role = await _context.Roles.FindAsync(id);
+
             if (role == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && role.TenantId != tenantId) return NotFound();
+
             return role;
         }
 
-        // POST: api/Roles
         [HttpPost]
-        public async Task<ActionResult<Role>> CreateRole(Role role)
+        public async Task<ActionResult<Role>> CreateRole(CreateRoleDto dto)
         {
-            if (string.IsNullOrWhiteSpace(role.Id))
-                role.Id = $"RL-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
+            var tenantId = GetCurrentTenantId();
+
+            var role = new Role
+            {
+                Id = $"RL-{DateTime.UtcNow:yyyyMMddHHmmssfff}",
+                Designation = dto.Designation,
+                Department = dto.Department,
+                Scope = dto.Scope,
+                Status = "Active",
+                TenantId = IsSuperAdmin() ? null : tenantId
+            };
 
             _context.Roles.Add(role);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (_context.Roles.Any(r => r.Id == role.Id))
-                    return Conflict();
-                throw;
-            }
+            await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetRole), new { id = role.Id }, role);
         }
 
-        // PUT: api/Roles/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateRole(string id, Role role)
+        public async Task<IActionResult> UpdateRole(string id, UpdateRoleDto dto)
         {
-            if (id != role.Id) return BadRequest();
+            var tenantId = GetCurrentTenantId();
+            var existing = await _context.Roles.FindAsync(id);
 
-            _context.Entry(role).State = EntityState.Modified;
+            if (existing == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && existing.TenantId != tenantId) return NotFound();
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Roles.Any(r => r.Id == id))
-                    return NotFound();
-                throw;
-            }
+            existing.Designation = dto.Designation;
+            existing.Department = dto.Department;
+            existing.Scope = dto.Scope;
 
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // PUT: api/Roles/archive/{id}
         [HttpPut("archive/{id}")]
         public async Task<IActionResult> ArchiveRole(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var role = await _context.Roles.FindAsync(id);
+
             if (role == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && role.TenantId != tenantId) return NotFound();
 
             role.Status = "Archived";
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpPut("restore/{id}")]
+        public async Task<IActionResult> RestoreRole(string id)
+        {
+            var tenantId = GetCurrentTenantId();
+            var role = await _context.Roles.FindAsync(id);
+
+            if (role == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && role.TenantId != tenantId) return NotFound();
+
+            role.Status = "Active";
             await _context.SaveChangesAsync();
             return NoContent();
         }

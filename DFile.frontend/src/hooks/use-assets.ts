@@ -1,14 +1,14 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { Asset } from '@/types/asset';
+import { Asset, CreateAssetPayload, UpdateAssetPayload, UpdateAssetFinancialPayload } from '@/types/asset';
 import { toast } from 'sonner';
 
 export function useAssets(showArchived?: boolean) {
     return useQuery({
         queryKey: ['assets', showArchived ?? 'all'],
         queryFn: async () => {
-            const params: any = {};
+            const params: Record<string, unknown> = {};
             if (showArchived !== undefined) {
                 params.showArchived = showArchived;
             }
@@ -33,8 +33,8 @@ export function useAddAsset() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (newAsset: Omit<Asset, 'id'>) => {
-            const { data } = await api.post<Asset>('/api/assets', newAsset);
+        mutationFn: async (payload: CreateAssetPayload) => {
+            const { data } = await api.post<Asset>('/api/assets', payload);
             return data;
         },
         onSuccess: () => {
@@ -51,11 +51,11 @@ export function useUpdateAsset() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (updatedAsset: Asset) => {
-            const { data } = await api.put<Asset>(`/api/assets/${updatedAsset.id}`, updatedAsset);
-            return updatedAsset; 
+        mutationFn: async ({ id, payload }: { id: string; payload: UpdateAssetPayload }) => {
+            const { data } = await api.put<Asset>(`/api/assets/${id}`, payload);
+            return data;
         },
-        onSuccess: (data, variables) => {
+        onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['assets'] });
             queryClient.invalidateQueries({ queryKey: ['assets', variables.id] });
             toast.success('Asset updated successfully');
@@ -104,20 +104,34 @@ export function useAllocateAsset() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, roomId }: { id: string; roomId: string }) => {
-            const { data } = await api.put<Asset>(`/api/assets/${id}`, { room: roomId } as any); // Partial update logic required on backend if strictly enforced, but let's assume assets controller uses PUT for full update. Assuming alloc logic is separate or merged.
-            // Actually, we should fetch update then push.
-            // But let's assume standard PUT for now.
-             const { data: asset } = await api.get<Asset>(`/api/assets/${id}`);
-             await api.put(`/api/assets/${id}`, { ...asset, room: roomId });
-             return { ...asset, room: roomId };
+        mutationFn: async ({ id, room }: { id: string; room: string }) => {
+            const { data } = await api.put<Asset>(`/api/assets/allocate/${id}`, { room });
+            return data;
         },
         onSuccess: () => {
-             queryClient.invalidateQueries({ queryKey: ['assets'] });
-             toast.success('Asset allocated successfully');
+            queryClient.invalidateQueries({ queryKey: ['assets'] });
+            toast.success('Asset allocated successfully');
         },
         onError: () => {
-             toast.error('Failed to allocate asset');
+            toast.error('Failed to allocate asset');
+        },
+    });
+}
+
+export function useUpdateAssetFinancial() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ id, payload }: { id: string; payload: UpdateAssetFinancialPayload }) => {
+            await api.put(`/api/assets/${id}/financial`, payload);
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['assets'] });
+            queryClient.invalidateQueries({ queryKey: ['assets', variables.id] });
+            toast.success('Financial data updated successfully');
+        },
+        onError: () => {
+            toast.error('Failed to update financial data');
         },
     });
 }

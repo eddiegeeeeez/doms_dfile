@@ -80,7 +80,8 @@ docker compose up --build   # Builds frontend + backend, serves on http://localh
 ### Program.cs middleware order (must not be changed)
 ```csharp
 app.UseStaticFiles();          // FIRST — short-circuits asset requests before auth/CORS
-app.UseSwagger(); app.UseSwaggerUI();
+// Swagger — development environment only
+if (app.Environment.IsDevelopment()) { app.UseSwagger(); app.UseSwaggerUI(); }
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -131,21 +132,21 @@ One hook file per domain (`use-assets.ts`, `use-rooms.ts`, etc.). All hooks use 
 - Read state via `useAuth()` hook (wraps `useContext(AuthContext)`)
 
 ### Role-based UI
-`UserRole`: `'Admin' | 'Maintenance' | 'Procurement' | 'Finance' | 'Super Admin'`
+`UserRole`: `'Super Admin' | 'Admin' | 'Finance' | 'Maintenance' | 'Procurement' | 'Employee'`
 
 Nav items declare `allowedRoles?: UserRole[]` — items without the array are visible to all roles. Super Admin has no `TenantId` (platform level). Tenant-scoped users always have a `TenantId`.
 
-Route-to-role map (from `dashboard/layout.tsx`):
-| Route | Allowed Roles |
-|---|---|
-| `/dashboard/procurement` | Admin, Procurement, Super Admin |
-| `/dashboard/inventory` | Admin, Procurement, Super Admin |
-| `/dashboard/allocation` | Admin, Super Admin |
-| `/dashboard/depreciation` | Admin, Finance, Super Admin |
-| `/dashboard/maintenance` | Admin, Maintenance, Super Admin |
-| `/dashboard/tasks` | Admin, Maintenance, Super Admin |
-| `/dashboard/rooms` | Admin, Super Admin |
-| `/dashboard/organization` | Admin, Super Admin |
+Role → namespace mapping (from `src/lib/role-routing.ts`):
+| Role | Namespace | Dashboard path |
+|---|---|---|
+| `Super Admin` | `/superadmin` | `/superadmin/dashboard` |
+| `Admin` | `/tenantadmin` | `/tenantadmin/dashboard` |
+| `Finance` | `/financemanager` | `/financemanager/dashboard` |
+| `Maintenance` | `/maintenancemanager` | `/maintenancemanager/dashboard` |
+| `Procurement` | `/tenantadmin` | `/tenantadmin/dashboard` |
+| `Employee` | `/tenantadmin` | `/tenantadmin/dashboard` |
+
+Role-namespaced pages live in `src/app/<namespace>/`. There is no shared `/dashboard/` route directory — it was removed. The single common shell is `src/components/app-shell.tsx`.
 
 ### Types
 All shared interfaces live in **`src/types/asset.ts`** (`Asset`, `Room`, `User`, `Category`, `MaintenanceRecord`, `Tenant`, etc.) and **`src/types/task.ts`**. Extend them there — never define domain types inline in components.
@@ -195,7 +196,7 @@ No partial CRUD is acceptable.
 | `DFile.frontend/src/lib/api.ts` | Axios instance with JWT interceptor |
 | `DFile.frontend/src/contexts/auth-context.tsx` | Auth state, login/logout, session re-validation |
 | `DFile.frontend/src/types/asset.ts` | All shared domain interfaces |
-| `DFile.frontend/src/app/dashboard/layout.tsx` | Nav items, role filtering, sidebar |
+| `DFile.frontend/src/components/app-shell.tsx` | App shell with nav, sidebar, role filtering |
 | `Dockerfile` | Root multi-stage build (frontend → backend → runtime) |
 | `docker-compose.yml` | Single-service compose with env var overrides |
 

@@ -1,4 +1,5 @@
 using DFile.backend.Data;
+using DFile.backend.DTOs;
 using DFile.backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,8 +9,8 @@ namespace DFile.backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
-    public class RoomCategoriesController : ControllerBase
+    [Authorize(Roles = "Admin,Super Admin")]
+    public class RoomCategoriesController : TenantAwareController
     {
         private readonly AppDbContext _context;
 
@@ -18,13 +19,18 @@ namespace DFile.backend.Controllers
             _context = context;
         }
 
-        // GET: api/RoomCategories
         [HttpGet]
         public async Task<ActionResult<IEnumerable<RoomCategory>>> GetRoomCategories(
             [FromQuery] bool includeArchived = false,
             [FromQuery] string? search = null)
         {
+            var tenantId = GetCurrentTenantId();
             var query = _context.RoomCategories.AsQueryable();
+
+            if (!IsSuperAdmin() && tenantId.HasValue)
+            {
+                query = query.Where(c => c.TenantId == tenantId);
+            }
 
             if (!includeArchived)
             {
@@ -42,98 +48,105 @@ namespace DFile.backend.Controllers
             return await query.ToListAsync();
         }
 
-        // GET: api/RoomCategories/5
         [HttpGet("{id}")]
         public async Task<ActionResult<RoomCategory>> GetRoomCategory(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var roomCategory = await _context.RoomCategories.FindAsync(id);
 
-            if (roomCategory == null)
-            {
-                return NotFound();
-            }
+            if (roomCategory == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && roomCategory.TenantId != tenantId) return NotFound();
 
             return roomCategory;
         }
 
-        // POST: api/RoomCategories
         [HttpPost]
-        public async Task<ActionResult<RoomCategory>> PostRoomCategory(RoomCategory roomCategory)
+        public async Task<ActionResult<RoomCategory>> PostRoomCategory(CreateRoomCategoryDto dto)
         {
-            if (string.IsNullOrEmpty(roomCategory.Id))
+            var tenantId = GetCurrentTenantId();
+
+            var roomCategory = new RoomCategory
             {
-                roomCategory.Id = Guid.NewGuid().ToString();
-            }
-            
+                Id = Guid.NewGuid().ToString(),
+                Name = dto.Name,
+                SubCategory = dto.SubCategory,
+                Description = dto.Description,
+                BaseRate = dto.BaseRate,
+                MaxOccupancy = dto.MaxOccupancy,
+                Status = "Active",
+                Archived = false,
+                TenantId = IsSuperAdmin() ? null : tenantId
+            };
+
             _context.RoomCategories.Add(roomCategory);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (RoomCategoryExists(roomCategory.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetRoomCategory", new { id = roomCategory.Id }, roomCategory);
         }
 
-        // PUT: api/RoomCategories/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutRoomCategory(string id, RoomCategory roomCategory)
+        public async Task<IActionResult> PutRoomCategory(string id, UpdateRoomCategoryDto dto)
         {
-            if (id != roomCategory.Id)
-            {
-                return BadRequest();
-            }
+            var tenantId = GetCurrentTenantId();
+            var existing = await _context.RoomCategories.FindAsync(id);
 
-            _context.Entry(roomCategory).State = EntityState.Modified;
+            if (existing == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && existing.TenantId != tenantId) return NotFound();
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!RoomCategoryExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            existing.Name = dto.Name;
+            existing.SubCategory = dto.SubCategory;
+            existing.Description = dto.Description;
+            existing.BaseRate = dto.BaseRate;
+            existing.MaxOccupancy = dto.MaxOccupancy;
+            existing.Archived = dto.Archived;
+            existing.Status = dto.Status;
 
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // DELETE: api/RoomCategories/5
+        [HttpPut("archive/{id}")]
+        public async Task<IActionResult> ArchiveRoomCategory(string id)
+        {
+            var tenantId = GetCurrentTenantId();
+            var category = await _context.RoomCategories.FindAsync(id);
+
+            if (category == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && category.TenantId != tenantId) return NotFound();
+
+            category.Archived = true;
+            category.Status = "Archived";
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpPut("restore/{id}")]
+        public async Task<IActionResult> RestoreRoomCategory(string id)
+        {
+            var tenantId = GetCurrentTenantId();
+            var category = await _context.RoomCategories.FindAsync(id);
+
+            if (category == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && category.TenantId != tenantId) return NotFound();
+
+            category.Archived = false;
+            category.Status = "Active";
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRoomCategory(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var roomCategory = await _context.RoomCategories.FindAsync(id);
-            if (roomCategory == null)
-            {
-                return NotFound();
-            }
+
+            if (roomCategory == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && roomCategory.TenantId != tenantId) return NotFound();
 
             _context.RoomCategories.Remove(roomCategory);
             await _context.SaveChangesAsync();
-
             return NoContent();
-        }
-
-        private bool RoomCategoryExists(string id)
-        {
-            return _context.RoomCategories.Any(e => e.Id == id);
         }
     }
 }

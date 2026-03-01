@@ -34,7 +34,7 @@ export function AssetAllocationView({ assets, rooms, onAllocate }: AssetAllocati
             if (!matchesSearch) return false;
 
             // Category Filter
-            if (filterCategory !== "all" && a.cat !== filterCategory) return false;
+            if (filterCategory !== "all" && a.categoryName !== filterCategory) return false;
 
             // Date Filter
             if (dateFilter !== "All Time") {
@@ -60,7 +60,7 @@ export function AssetAllocationView({ assets, rooms, onAllocate }: AssetAllocati
         r.floor.toString().includes(roomSearchTerm)
     );
 
-    const categories = Array.from(new Set(assets.map(a => a.cat)));
+    const categories = Array.from(new Set(assets.map(a => a.categoryName).filter((v): v is string => Boolean(v))));
     const selectedAsset = assets.find(a => a.id === selectedAssetId);
     // const selectedRoom = rooms.find(r => r.unitId === selectedRoomId); // Unused
 
@@ -75,20 +75,20 @@ export function AssetAllocationView({ assets, rooms, onAllocate }: AssetAllocati
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 lg:h-[calc(100vh-12rem)]">
             {/* Left Panel: Available Assets */}
-            <div className="lg:col-span-2 flex flex-col h-full gap-4">
-                 <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-                    <div className="flex flex-1 gap-2 w-full sm:w-auto">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="lg:col-span-2 flex flex-col h-full gap-6">
+                 <div className="flex flex-col lg:flex-row gap-3 justify-between items-start lg:items-center">
+                    <div className="flex flex-1 flex-wrap gap-3 w-full lg:w-auto">
+                        <div className="relative flex-1 min-w-[200px]">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search by name or ID..."
-                                className="pl-9 h-9 text-sm"
+                                className="pl-9 h-10"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
                         <Select value={filterCategory} onValueChange={setFilterCategory}>
-                            <SelectTrigger className="w-[160px] h-9 text-sm">
+                            <SelectTrigger className="w-[160px] h-10">
                                 <SelectValue placeholder="Category" />
                             </SelectTrigger>
                             <SelectContent>
@@ -97,9 +97,11 @@ export function AssetAllocationView({ assets, rooms, onAllocate }: AssetAllocati
                             </SelectContent>
                         </Select>
                         <Select value={dateFilter} onValueChange={setDateFilter}>
-                            <SelectTrigger className="w-[160px] h-9 text-sm">
-                                <CalendarIcon className="w-4 h-4 mr-2 text-muted-foreground" />
-                                <SelectValue placeholder="Period" />
+                            <SelectTrigger className="w-[160px] h-10">
+                                <div className="flex items-center gap-2">
+                                    <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                                    <SelectValue placeholder="Period" />
+                                </div>
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="All Time">All Time</SelectItem>
@@ -110,19 +112,19 @@ export function AssetAllocationView({ assets, rooms, onAllocate }: AssetAllocati
                     </div>
                  </div>
 
-                <Card className="flex-1 flex flex-col border-border/50 shadow-sm">
-                    <CardHeader className="p-6 border-b border-border/50 bg-muted/40 uppercase tracking-wider">
+                <Card className="flex-1 flex flex-col">
+                    <CardHeader>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                                    <Package size={18} />
+                                <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <Package className="h-5 w-5 text-primary" />
                                 </div>
                                 <div>
-                                    <CardTitle className="text-lg font-semibold text-foreground">Asset Inventory</CardTitle>
-                                    <CardDescription className="text-xs text-muted-foreground">Select an available asset</CardDescription>
+                                    <CardTitle>Asset Inventory</CardTitle>
+                                    <CardDescription>Select an available asset</CardDescription>
                                 </div>
                             </div>
-                            <Badge variant="outline" className="bg-background">{availableAssets.length} Available</Badge>
+                            <Badge variant="outline">{availableAssets.length} Available</Badge>
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 overflow-y-auto p-0">
@@ -132,7 +134,7 @@ export function AssetAllocationView({ assets, rooms, onAllocate }: AssetAllocati
                             <p className="text-sm">No available assets found</p>
                         </div>
                     ) : (
-                        <div className="divide-y divide-border/50">
+                        <div className="divide-y divide-border/40">
                             {availableAssets.map((asset) => (
                                 <div
                                     key={asset.id}
@@ -144,14 +146,14 @@ export function AssetAllocationView({ assets, rooms, onAllocate }: AssetAllocati
                                             {asset.image ? (
                                                 <img src={asset.image} alt="" className="h-full w-full object-cover rounded-lg" />
                                             ) : (
-                                                <Package size={18} className="text-muted-foreground" />
+                                                <Package className="h-5 w-5 text-muted-foreground" />
                                             )}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-sm text-foreground">{asset.desc}</p>
+                                            <p className="font-medium text-sm">{asset.desc}</p>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 rounded">{asset.id}</span>
-                                                <span className="text-xs text-muted-foreground">• {asset.cat}</span>
+                                                <span className="text-xs text-muted-foreground">• {asset.categoryName}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -167,46 +169,46 @@ export function AssetAllocationView({ assets, rooms, onAllocate }: AssetAllocati
             {/* Right Panel: Allocation Action */}
             <div className="flex flex-col gap-6 h-full">
                 {/* Target Room Selection */}
-                <Card className="flex-1 border-border/50 shadow-sm flex flex-col">
-                    <CardHeader className="p-6 border-b border-border/50 bg-muted/40">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                                <Building2 size={18} />
+                <Card className="flex-1 flex flex-col">
+                    <CardHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                                <Building2 className="h-5 w-5 text-primary" />
                             </div>
                             <div>
-                                <CardTitle className="text-lg font-semibold text-foreground">Target Location</CardTitle>
-                                <CardDescription className="text-xs text-muted-foreground">Select destination room unit</CardDescription>
+                                <CardTitle>Target Location</CardTitle>
+                                <CardDescription>Select destination room unit</CardDescription>
                             </div>
                         </div>
-                        <div className="relative mt-2">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <div className="relative mt-4">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search room..."
-                                className="pl-9 h-10 bg-background text-sm"
+                                className="pl-9 h-10"
                                 value={roomSearchTerm}
                                 onChange={(e) => setRoomSearchTerm(e.target.value)}
                             />
                         </div>
                     </CardHeader>
-                    <CardContent className="p-4 flex-1 overflow-y-auto">
+                    <CardContent className="flex-1 overflow-y-auto">
                         <div className="space-y-2">
                             {filteredRooms.map((room) => (
                                 <div
                                     key={room.id}
                                     onClick={() => setSelectedRoomId(room.unitId)}
-                                    className={`p-3  border cursor-pointer transition-all ${selectedRoomId === room.unitId ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:border-primary/50"}`}
+                                    className={`p-3 rounded-xl border cursor-pointer transition-all ${selectedRoomId === room.unitId ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/50 hover:border-primary/50"}`}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                                                <Building2 size={14} />
+                                            <div className="h-9 w-9 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center">
+                                                <Building2 className="h-4 w-4" />
                                             </div>
                                             <div>
                                                 <p className="font-semibold text-sm">{room.unitId}</p>
                                                 <p className="text-xs text-muted-foreground">{room.floor}</p>
                                             </div>
                                         </div>
-                                        {selectedRoomId === room.unitId && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                        {selectedRoomId === room.unitId && <div className="h-2.5 w-2.5 rounded-full bg-primary" />}
                                     </div>
                                 </div>
                             ))}
@@ -215,7 +217,7 @@ export function AssetAllocationView({ assets, rooms, onAllocate }: AssetAllocati
                 </Card>
 
                 {/* Confirmation Box */}
-                <Card className="border-border/50 shadow-sm bg-muted/20">
+                <Card className="bg-muted/30">
                     <CardContent className="p-6 space-y-4">
                         <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">Selected Asset:</span>
@@ -226,16 +228,14 @@ export function AssetAllocationView({ assets, rooms, onAllocate }: AssetAllocati
                             <span className="font-medium">{selectedRoomId || "—"}</span>
                         </div>
 
-                        <div className="pt-2">
-                            <Button
-                                className="w-full "
-                                size="lg"
-                                disabled={!selectedAssetId || !selectedRoomId}
-                                onClick={handleConfirmAllocation}
-                            >
-                                Confirm Allocation <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                        </div>
+                        <Button
+                            className="w-full gap-2"
+                            size="lg"
+                            disabled={!selectedAssetId || !selectedRoomId}
+                            onClick={handleConfirmAllocation}
+                        >
+                            Confirm Allocation <ArrowRight className="h-4 w-4" />
+                        </Button>
                     </CardContent>
                 </Card>
             </div>

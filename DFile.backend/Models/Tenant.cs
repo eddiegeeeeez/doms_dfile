@@ -14,8 +14,10 @@ namespace DFile.backend.Models
         public int Id { get; set; }
         [Required]
         public string Name { get; set; } = string.Empty;
+        public string BusinessAddress { get; set; } = string.Empty;
         public SubscriptionPlanType SubscriptionPlan { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public string Status { get; set; } = "Active";
         
         // Limits based on plan (Could be stored or computed, storing allows custom overrides)

@@ -1,6 +1,6 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Category } from '@/types/asset';
+import { Category, CreateCategoryPayload } from '@/types/asset';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -8,7 +8,7 @@ export function useCategories(showArchived: boolean = false) {
     return useQuery({
         queryKey: ['categories', showArchived],
         queryFn: async () => {
-             const { data } = await api.get<Category[]>('/api/AssetCategories', {
+            const { data } = await api.get<Category[]>('/api/AssetCategories', {
                 params: { showArchived }
             });
             return data;
@@ -31,10 +31,8 @@ export function useAddCategory() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (category: Omit<Category, 'id' | 'items'>) => {
-            // Note: Backend generates ID. Frontend usually sends DTO without ID or empty ID.
-            // Our Category type has ID. We use Omit.
-            const { data } = await api.post<Category>('/api/AssetCategories', category);
+        mutationFn: async (payload: CreateCategoryPayload) => {
+            const { data } = await api.post<Category>('/api/AssetCategories', payload);
             return data;
         },
         onSuccess: () => {
@@ -51,8 +49,8 @@ export function useUpdateCategory() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (category: Category) => {
-            const { data } = await api.put<Category>(`/api/AssetCategories/${category.id}`, category);
+        mutationFn: async ({ id, payload }: { id: string; payload: CreateCategoryPayload }) => {
+            const { data } = await api.put<Category>(`/api/AssetCategories/${id}`, payload);
             return data;
         },
         onSuccess: () => {

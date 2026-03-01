@@ -1,4 +1,5 @@
 using DFile.backend.Data;
+using DFile.backend.DTOs;
 using DFile.backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,8 +9,8 @@ namespace DFile.backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
-    public class RoomsController : ControllerBase
+    [Authorize(Roles = "Admin,Super Admin")]
+    public class RoomsController : TenantAwareController
     {
         private readonly AppDbContext _context;
 
@@ -18,16 +19,26 @@ namespace DFile.backend.Controllers
             _context = context;
         }
 
-        // GET: api/Rooms
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Room>>> GetRooms(
             [FromQuery] string? search = null, 
             [FromQuery] string? categoryId = null,
-            [FromQuery] string? status = null)
+            [FromQuery] string? status = null,
+            [FromQuery] bool showArchived = false)
         {
-            var query = _context.Rooms
-                .Include(r => r.RoomCategory)
-                .AsQueryable();
+            var tenantId = GetCurrentTenantId();
+            var query = _context.Rooms.Include(r => r.RoomCategory).AsQueryable();
+
+            if (!IsSuperAdmin() && tenantId.HasValue)
+            {
+                query = query.Where(r => r.TenantId == tenantId);
+            }
+
+            // By default exclude archived rooms
+            if (!showArchived)
+            {
+                query = query.Where(r => !r.Archived);
+            }
 
             if (!string.IsNullOrEmpty(categoryId))
             {
@@ -36,11 +47,10 @@ namespace DFile.backend.Controllers
 
             if (!string.IsNullOrEmpty(status))
             {
-                // Handle multiple statuses if comma-separated
-                if (status.Contains(","))
+                if (status.Contains(','))
                 {
                     var statuses = status.Split(',').Select(s => s.Trim()).ToList();
-                    query = query.Where(r => statuses.Contains(r.Status)); 
+                    query = query.Where(r => statuses.Contains(r.Status));
                 }
                 else
                 {
@@ -60,124 +70,129 @@ namespace DFile.backend.Controllers
             return await query.ToListAsync();
         }
 
-        // GET: api/Rooms/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Room>> GetRoom(string id)
         {
-            var room = await _context.Rooms
-                .Include(r => r.RoomCategory)
-                .FirstOrDefaultAsync(r => r.Id == id);
+            var tenantId = GetCurrentTenantId();
+            var room = await _context.Rooms.Include(r => r.RoomCategory).FirstOrDefaultAsync(r => r.Id == id);
 
-            if (room == null)
-            {
-                return NotFound();
-            }
+            if (room == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && room.TenantId != tenantId) return NotFound();
 
             return room;
         }
 
-        // POST: api/Rooms
         [HttpPost]
-        public async Task<ActionResult<Room>> PostRoom(Room room)
+        [Authorize(Roles = "Admin,Super Admin")]
+        public async Task<ActionResult<Room>> PostRoom(CreateRoomDto dto)
         {
-            if (string.IsNullOrEmpty(room.Id))
-            {
-                room.Id = Guid.NewGuid().ToString();
-            }
+            var tenantId = GetCurrentTenantId();
 
-            // Handle empty category ID
-            if (string.IsNullOrEmpty(room.CategoryId))
+            var room = new Room
             {
-                room.CategoryId = null;
-            }
-            
+                Id = Guid.NewGuid().ToString(),
+                UnitId = dto.UnitId,
+                Name = dto.Name,
+                Floor = dto.Floor,
+                CategoryId = string.IsNullOrEmpty(dto.CategoryId) ? null : dto.CategoryId,
+                Status = dto.Status,
+                MaxOccupancy = dto.MaxOccupancy,
+                TenantId = IsSuperAdmin() ? null : tenantId,
+                Archived = false
+            };
+
             _context.Rooms.Add(room);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (RoomExists(room.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetRoom", new { id = room.Id }, room);
         }
 
-        // PUT: api/Rooms/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutRoom(string id, Room room)
+        [Authorize(Roles = "Admin,Super Admin")]
+        public async Task<IActionResult> PutRoom(string id, UpdateRoomDto dto)
         {
-            if (id != room.Id)
-            {
-                return BadRequest();
-            }
+            var tenantId = GetCurrentTenantId();
+            var existing = await _context.Rooms.FindAsync(id);
 
-            _context.Entry(room).State = EntityState.Modified;
+            if (existing == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && existing.TenantId != tenantId) return NotFound();
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!RoomExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            existing.UnitId = dto.UnitId;
+            existing.Name = dto.Name;
+            existing.Floor = dto.Floor;
+            existing.CategoryId = string.IsNullOrEmpty(dto.CategoryId) ? null : dto.CategoryId;
+            existing.Status = dto.Status;
+            existing.MaxOccupancy = dto.MaxOccupancy;
+            existing.Archived = dto.Archived;
 
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // DELETE: api/Rooms/5
+        [HttpPut("archive/{id}")]
+        [Authorize(Roles = "Admin,Super Admin")]
+        public async Task<IActionResult> ArchiveRoom(string id)
+        {
+            var tenantId = GetCurrentTenantId();
+            var room = await _context.Rooms.FindAsync(id);
+
+            if (room == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && room.TenantId != tenantId) return NotFound();
+
+            room.Archived = true;
+            room.Status = "Deactivated";
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpPut("restore/{id}")]
+        [Authorize(Roles = "Admin,Super Admin")]
+        public async Task<IActionResult> RestoreRoom(string id)
+        {
+            var tenantId = GetCurrentTenantId();
+            var room = await _context.Rooms.FindAsync(id);
+
+            if (room == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && room.TenantId != tenantId) return NotFound();
+
+            room.Archived = false;
+            room.Status = "Available";
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Super Admin")]
         public async Task<IActionResult> DeleteRoom(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var room = await _context.Rooms.FindAsync(id);
-            if (room == null)
-            {
-                return NotFound();
-            }
+
+            if (room == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && room.TenantId != tenantId) return NotFound();
 
             _context.Rooms.Remove(room);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
-        private bool RoomExists(string id)
-        {
-            return _context.Rooms.Any(e => e.Id == id);
-        }
-
-        // GET: api/Rooms/Stats
         [HttpGet("stats")]
         public async Task<ActionResult<object>> GetRoomStats()
         {
-            var totalRooms = await _context.Rooms.CountAsync();
-            var occupied = await _context.Rooms.CountAsync(r => r.Status == "Occupied");
-            var available = await _context.Rooms.CountAsync(r => r.Status == "Available");
-            var maintenance = await _context.Rooms.CountAsync(r => r.Status == "Maintenance");
+            var tenantId = GetCurrentTenantId();
+            var query = _context.Rooms.AsQueryable();
 
-            return new
+            if (!IsSuperAdmin() && tenantId.HasValue)
             {
-                Total = totalRooms,
-                Occupied = occupied,
-                Available = available,
-                Maintenance = maintenance
-            };
+                query = query.Where(r => r.TenantId == tenantId);
+            }
+
+            var totalRooms = await query.CountAsync();
+            var occupied = await query.CountAsync(r => r.Status == "Occupied");
+            var available = await query.CountAsync(r => r.Status == "Available");
+            var maintenance = await query.CountAsync(r => r.Status == "Maintenance");
+
+            return new { Total = totalRooms, Occupied = occupied, Available = available, Maintenance = maintenance };
         }
     }
 }

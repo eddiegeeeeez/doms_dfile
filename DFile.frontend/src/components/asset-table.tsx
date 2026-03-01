@@ -32,6 +32,7 @@ import {
 import { CurrencyCell } from "@/components/ui/currency-cell";
 import { Asset } from "@/types/asset";
 import { useAssets, useArchiveAsset, useRestoreAsset } from "@/hooks/use-assets";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const statusVariant: Record<string, "success" | "info" | "warning" | "danger"> = {
@@ -63,9 +64,10 @@ function SortableHeader({ column, children }: { column: { toggleSorting: (asc: b
 
 interface AssetTableProps {
     onAssetClick?: (asset: Asset) => void;
+    readOnly?: boolean;
 }
 
-export function AssetTable({ onAssetClick }: AssetTableProps) {
+export function AssetTable({ onAssetClick, readOnly = false }: AssetTableProps) {
     const { data: assets = [], isLoading } = useAssets();
     const archiveAssetMutation = useArchiveAsset();
     const restoreAssetMutation = useRestoreAsset();
@@ -77,10 +79,11 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [selectedAssetForQR, setSelectedAssetForQR] = useState<Asset | null>(null);
+    const [archiveTarget, setArchiveTarget] = useState<string | null>(null);
     const [pageInput, setPageInput] = useState("");
 
     const uniqueCategories = useMemo(
-        () => Array.from(new Set(assets.map((a) => a.cat))).sort(),
+        () => Array.from(new Set(assets.map((a) => a.categoryName).filter((v): v is string => Boolean(v)))).sort(),
         [assets],
     );
 
@@ -99,7 +102,7 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
             }
 
             if (statusFilter !== "All" && asset.status !== statusFilter) return false;
-            if (categoryFilter !== "All" && asset.cat !== categoryFilter) return false;
+            if (categoryFilter !== "All" && asset.categoryName !== categoryFilter) return false;
 
             return true;
         });
@@ -124,10 +127,10 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                 ),
             },
             {
-                accessorKey: "cat",
+                accessorKey: "categoryName",
                 header: ({ column }) => <SortableHeader column={column}>Category</SortableHeader>,
                 cell: ({ row }) => (
-                    <span className="text-sm text-muted-foreground">{row.getValue("cat")}</span>
+                    <span className="text-sm text-muted-foreground">{row.getValue("categoryName")}</span>
                 ),
             },
             {
@@ -177,7 +180,7 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                     </div>
                 ),
             },
-            {
+            ...(!readOnly ? [{
                 id: "actions",
                 enableHiding: false,
                 header: () => (
@@ -185,7 +188,7 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                         {showArchived ? "Restore" : "Archive"}
                     </span>
                 ),
-                cell: ({ row }) => {
+                cell: ({ row }: { row: { original: Asset } }) => {
                     const asset = row.original;
                     const isArchived = asset.status === "Archived";
                     return (
@@ -200,7 +203,7 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                                     if (isArchived) {
                                         restoreAssetMutation.mutate(asset.id);
                                     } else {
-                                        archiveAssetMutation.mutate(asset.id);
+                                        setArchiveTarget(asset.id);
                                     }
                                 }}
                                 aria-label={isArchived ? "Restore asset" : "Archive asset"}
@@ -210,9 +213,9 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                         </div>
                     );
                 },
-            },
+            }] : []),
         ],
-        [showArchived, archiveAssetMutation, restoreAssetMutation],
+        [showArchived, archiveAssetMutation, restoreAssetMutation, readOnly],
     );
 
     const table = useReactTable({
@@ -230,7 +233,7 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
     const handleExportCSV = () => {
         const rows = table.getSortedRowModel().rows.map((row) => {
             const a = row.original;
-            return [a.id, `"${a.desc.replace(/"/g, '""')}"`, a.cat, a.status, a.room, a.value.toFixed(2)];
+            return [a.id, `"${a.desc.replace(/"/g, '""')}"`, a.categoryName, a.status, a.room, a.value.toFixed(2)];
         });
         const csv = [
             "Asset ID,Asset Name,Category,Status,Room,Value",
@@ -259,23 +262,23 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
     if (isLoading) {
         return (
             <Card className="overflow-hidden">
-                <div className="p-5 border-b border-border">
+                <div className="p-6">
                     <div className="flex justify-between items-center">
                         <Skeleton className="h-5 w-40" />
-                        <Skeleton className="h-8 w-28" />
+                        <Skeleton className="h-9 w-28" />
                     </div>
                 </div>
-                <div className="p-5 flex gap-3">
-                    <Skeleton className="h-9 flex-1" />
-                    <Skeleton className="h-9 w-36" />
-                    <Skeleton className="h-9 w-36" />
+                <div className="px-6 pb-6 flex gap-3">
+                    <Skeleton className="h-10 flex-1" />
+                    <Skeleton className="h-10 w-36" />
+                    <Skeleton className="h-10 w-36" />
                 </div>
-                <div className="divide-y divide-border">
+                <div className="divide-y divide-border/40">
                     {[...Array(5)].map((_, i) => (
-                        <div key={i} className="px-5 py-3.5 flex gap-4 items-center">
+                        <div key={i} className="px-6 py-4 flex gap-4 items-center">
                             <Skeleton className="h-4 w-20" />
                             <Skeleton className="h-4 flex-1" />
-                            <Skeleton className="h-5 w-16 rounded-full" />
+                            <Skeleton className="h-6 w-16 rounded-full" />
                             <Skeleton className="h-4 w-20" />
                         </div>
                     ))}
@@ -285,7 +288,7 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <QRCodeModal
                 open={!!selectedAssetForQR}
                 onOpenChange={(open) => !open && setSelectedAssetForQR(null)}
@@ -294,21 +297,21 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
 
             <Card className="overflow-hidden">
                 {/* Toolbar */}
-                <div className="p-4 border-b border-border flex flex-col sm:flex-row gap-3 justify-between items-center">
-                    <div className="flex flex-1 gap-2 w-full sm:w-auto items-center">
-                        <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <div className="p-6 flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
+                    <div className="flex flex-1 flex-wrap gap-3 w-full lg:w-auto items-center">
+                        <div className="relative flex-1 min-w-[200px] max-w-sm">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                             <Input
                                 placeholder="Search assets..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9 h-9 text-sm"
+                                className="pl-10 h-10"
                                 aria-label="Search assets"
                             />
                         </div>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-[160px] h-9 text-sm">
-                                <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                            <SelectTrigger className="w-[150px] h-10">
+                                <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
                                 <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>
@@ -319,8 +322,8 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                             </SelectContent>
                         </Select>
                         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                            <SelectTrigger className="w-[160px] h-9 text-sm">
-                                <Package className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                            <SelectTrigger className="w-[150px] h-10">
+                                <Package className="w-4 h-4 mr-2 text-muted-foreground" />
                                 <SelectValue placeholder="Category" />
                             </SelectTrigger>
                             <SelectContent>
@@ -331,11 +334,11 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <div className="flex items-center gap-2 w-full lg:w-auto justify-end flex-wrap">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-9 text-sm">
-                                    <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
+                                <Button variant="outline" size="sm" className="h-10">
+                                    <SlidersHorizontal className="mr-2 h-4 w-4" />
                                     Columns
                                 </Button>
                             </DropdownMenuTrigger>
@@ -346,7 +349,7 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                                     .map((column) => (
                                         <DropdownMenuCheckboxItem
                                             key={column.id}
-                                            className="capitalize text-sm"
+                                            className="capitalize"
                                             checked={column.getIsVisible()}
                                             onCheckedChange={(v) => column.toggleVisibility(!!v)}
                                         >
@@ -355,28 +358,30 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                                     ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
-                        <Button variant="outline" size="sm" className="h-9 text-sm" onClick={handleExportCSV}>
-                            <FileBarChart size={14} className="mr-1.5" />
+                        <Button variant="outline" size="sm" className="h-10" onClick={handleExportCSV}>
+                            <FileBarChart size={16} className="mr-2" />
                             Export
                         </Button>
-                        <Button
-                            variant={showArchived ? "default" : "outline"}
-                            size="sm"
-                            className="h-9 text-sm"
-                            onClick={() => setShowArchived(!showArchived)}
-                        >
-                            {showArchived ? (
-                                <>
-                                    <RotateCcw size={14} className="mr-1.5" />
-                                    Active ({assets.filter((a) => a.status !== "Archived").length})
-                                </>
-                            ) : (
-                                <>
-                                    <Archive size={14} className="mr-1.5" />
-                                    Archived ({assets.filter((a) => a.status === "Archived").length})
-                                </>
-                            )}
-                        </Button>
+                        {!readOnly && (
+                            <Button
+                                variant={showArchived ? "default" : "outline"}
+                                size="sm"
+                                className="h-10"
+                                onClick={() => setShowArchived(!showArchived)}
+                            >
+                                {showArchived ? (
+                                    <>
+                                        <RotateCcw size={16} className="mr-2" />
+                                        Active ({assets.filter((a) => a.status !== "Archived").length})
+                                    </>
+                                ) : (
+                                    <>
+                                        <Archive size={16} className="mr-2" />
+                                        Archived ({assets.filter((a) => a.status === "Archived").length})
+                                    </>
+                                )}
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -385,7 +390,7 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                     <Table className="w-full">
                         <TableHeader>
                             {table.getHeaderGroups().map((headerGroup) => (
-                                <TableRow key={headerGroup.id} className="bg-muted/50 hover:bg-muted/50">
+                                <TableRow key={headerGroup.id} className="hover:bg-transparent border-y border-border/40">
                                     {headerGroup.headers.map((header) => (
                                         <TableHead key={header.id}>
                                             {header.isPlaceholder
@@ -401,7 +406,7 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                                 table.getRowModel().rows.map((row) => (
                                     <TableRow
                                         key={row.id}
-                                        className="cursor-pointer hover:bg-muted/5 transition-colors"
+                                        className="cursor-pointer"
                                         onClick={() => onAssetClick?.(row.original)}
                                     >
                                         {row.getVisibleCells().map((cell) => (
@@ -412,10 +417,10 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                                     </TableRow>
                                 ))
                             ) : (
-                                <TableRow>
+                                <TableRow className="hover:bg-transparent">
                                     <TableCell
                                         colSpan={columns.length}
-                                        className="h-24 text-center text-muted-foreground text-sm"
+                                        className="h-32 text-center text-muted-foreground"
                                     >
                                         {showArchived ? "No archived assets yet" : "No assets match your search"}
                                     </TableCell>
@@ -426,9 +431,9 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                 </div>
 
                 {/* Pagination Footer */}
-                <div className="px-4 py-3 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/20">
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span>
+                <div className="px-6 py-4 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/20">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="font-medium">
                             {table.getFilteredRowModel().rows.length === 0
                                 ? "No results"
                                 : `${table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}–${Math.min(
@@ -437,18 +442,18 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                                       table.getFilteredRowModel().rows.length,
                                   )} of ${table.getFilteredRowModel().rows.length}`}
                         </span>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2">
                             <span>Rows:</span>
                             <Select
                                 value={String(table.getState().pagination.pageSize)}
                                 onValueChange={(v) => table.setPageSize(Number(v))}
                             >
-                                <SelectTrigger className="h-7 w-[62px] text-xs">
+                                <SelectTrigger className="h-8 w-[68px]">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {[5, 10, 20, 50].map((s) => (
-                                        <SelectItem key={s} value={String(s)} className="text-xs">
+                                        <SelectItem key={s} value={String(s)}>
                                             {s}
                                         </SelectItem>
                                     ))}
@@ -456,8 +461,8 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                             </Select>
                         </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground font-medium">
                             Page {table.getState().pagination.pageIndex + 1} of{" "}
                             {table.getPageCount() || 1}
                         </span>
@@ -466,24 +471,42 @@ export function AssetTable({ onAssetClick }: AssetTableProps) {
                             value={pageInput}
                             onChange={(e) => setPageInput(e.target.value)}
                             onKeyDown={handlePageInputSubmit}
-                            className="h-7 w-16 text-xs text-center"
+                            className="h-8 w-16 text-center"
                             aria-label="Go to page"
                         />
-                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} aria-label="First page">
-                            <ChevronsLeft className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} aria-label="Previous page">
-                            <ChevronLeft className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} aria-label="Next page">
-                            <ChevronRight className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} aria-label="Last page">
-                            <ChevronsRight className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} aria-label="First page">
+                                <ChevronsLeft className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} aria-label="Previous page">
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} aria-label="Next page">
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} aria-label="Last page">
+                                <ChevronsRight className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </Card>
+
+            <ConfirmDialog
+                open={archiveTarget !== null}
+                onOpenChange={(open) => { if (!open) setArchiveTarget(null); }}
+                title="Archive Asset"
+                description="Are you sure you want to archive this asset? It can be restored later from the archive view."
+                confirmLabel="Archive"
+                confirmVariant="destructive"
+                onConfirm={async () => {
+                    if (archiveTarget) {
+                        await archiveAssetMutation.mutateAsync(archiveTarget);
+                        setArchiveTarget(null);
+                    }
+                }}
+                isLoading={archiveAssetMutation.isPending}
+            />
         </div>
     );
 }

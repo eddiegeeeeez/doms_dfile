@@ -36,7 +36,8 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
@@ -99,8 +100,8 @@ export function DataTable<TData, TValue>({
     return (
         <div className="space-y-0">
             {/* Toolbar Row */}
-            <div className="p-4 border-b border-border flex flex-col sm:flex-row gap-3 justify-between items-center">
-                <div className="flex flex-1 gap-2 w-full sm:w-auto items-center">
+            <div className="p-6 border-b border-border/40 flex flex-col lg:flex-row gap-3 justify-between items-start lg:items-center">
+                <div className="flex flex-1 flex-wrap gap-3 w-full lg:w-auto items-center">
                     {searchKey && (
                         <Input
                             placeholder={searchPlaceholder}
@@ -110,15 +111,15 @@ export function DataTable<TData, TValue>({
                             onChange={(event) =>
                                 table.getColumn(searchKey)?.setFilterValue(event.target.value)
                             }
-                            className="h-9 text-sm max-w-sm"
+                            className="h-10 max-w-sm"
                         />
                     )}
                     {toolbar}
                 </div>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-9 text-sm">
-                            <SlidersHorizontal className="mr-2 h-4 w-4" />
+                        <Button variant="outline" size="sm" className="h-10 gap-2">
+                            <SlidersHorizontal className="h-4 w-4" />
                             Columns
                         </Button>
                     </DropdownMenuTrigger>
@@ -129,7 +130,7 @@ export function DataTable<TData, TValue>({
                             .map((column) => (
                                 <DropdownMenuCheckboxItem
                                     key={column.id}
-                                    className="capitalize text-sm"
+                                    className="capitalize"
                                     checked={column.getIsVisible()}
                                     onCheckedChange={(value) =>
                                         column.toggleVisibility(!!value)
@@ -147,18 +148,40 @@ export function DataTable<TData, TValue>({
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow
-                                key={headerGroup.id}
-                                className="bg-muted/50 hover:bg-muted/50"
-                            >
+                            <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
-                                    <TableHead key={header.id} className="text-xs font-medium text-muted-foreground">
-                                        {header.isPlaceholder
-                                            ? null
-                                            : flexRender(
-                                                  header.column.columnDef.header,
-                                                  header.getContext()
-                                              )}
+                                    <TableHead
+                                        key={header.id}
+                                        className={cn(
+                                            header.column.getCanSort() && "cursor-pointer select-none"
+                                        )}
+                                        onClick={
+                                            header.column.getCanSort()
+                                                ? header.column.getToggleSortingHandler()
+                                                : undefined
+                                        }
+                                    >
+                                        <div className={cn(
+                                            header.column.getCanSort() && "flex items-center gap-1.5 group"
+                                        )}>
+                                            {header.isPlaceholder
+                                                ? null
+                                                : flexRender(
+                                                      header.column.columnDef.header,
+                                                      header.getContext()
+                                                  )}
+                                            {header.column.getCanSort() && (
+                                                <span className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0">
+                                                    {header.column.getIsSorted() === "asc" ? (
+                                                        <ArrowUp size={13} className="text-primary" />
+                                                    ) : header.column.getIsSorted() === "desc" ? (
+                                                        <ArrowDown size={13} className="text-primary" />
+                                                    ) : (
+                                                        <ArrowUpDown size={13} />
+                                                    )}
+                                                </span>
+                                            )}
+                                        </div>
                                     </TableHead>
                                 ))}
                             </TableRow>
@@ -187,7 +210,7 @@ export function DataTable<TData, TValue>({
                             <TableRow>
                                 <TableCell
                                     colSpan={columns.length}
-                                    className="h-24 text-center text-muted-foreground text-sm"
+                                    className="h-24 text-center text-muted-foreground"
                                 >
                                     {emptyMessage}
                                 </TableCell>
@@ -198,8 +221,8 @@ export function DataTable<TData, TValue>({
             </div>
 
             {/* Pagination Footer */}
-            <div className="px-4 py-3 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/20">
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <div className="px-6 py-4 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span>
                         {table.getFilteredRowModel().rows.length === 0
                             ? "No results"

@@ -1,4 +1,5 @@
 using DFile.backend.Data;
+using DFile.backend.DTOs;
 using DFile.backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,8 +9,8 @@ namespace DFile.backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
-    public class DepartmentsController : ControllerBase
+    [Authorize(Roles = "Admin,Super Admin")]
+    public class DepartmentsController : TenantAwareController
     {
         private readonly AppDbContext _context;
 
@@ -18,74 +19,99 @@ namespace DFile.backend.Controllers
             _context = context;
         }
 
-        // GET: api/Departments
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Department>>> GetDepartments()
+        public async Task<ActionResult<IEnumerable<Department>>> GetDepartments([FromQuery] bool showArchived = false)
         {
-            return await _context.Departments.ToListAsync();
+            var tenantId = GetCurrentTenantId();
+            var query = _context.Departments.AsQueryable();
+
+            if (!IsSuperAdmin() && tenantId.HasValue)
+            {
+                query = query.Where(d => d.TenantId == tenantId);
+            }
+
+            if (!showArchived)
+            {
+                query = query.Where(d => d.Status != "Archived");
+            }
+
+            return await query.ToListAsync();
         }
 
-        // GET: api/Departments/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<Department>> GetDepartment(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var dept = await _context.Departments.FindAsync(id);
+
             if (dept == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && dept.TenantId != tenantId) return NotFound();
+
             return dept;
         }
 
-        // POST: api/Departments
         [HttpPost]
-        public async Task<ActionResult<Department>> CreateDepartment(Department dept)
+        public async Task<ActionResult<Department>> CreateDepartment(CreateDepartmentDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dept.Id))
-                dept.Id = $"D-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
+            var tenantId = GetCurrentTenantId();
+
+            var dept = new Department
+            {
+                Id = $"D-{DateTime.UtcNow:yyyyMMddHHmmssfff}",
+                Name = dto.Name,
+                Description = dto.Description,
+                Head = dto.Head,
+                Status = "Active",
+                TenantId = IsSuperAdmin() ? null : tenantId
+            };
 
             _context.Departments.Add(dept);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (_context.Departments.Any(d => d.Id == dept.Id))
-                    return Conflict();
-                throw;
-            }
+            await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetDepartment), new { id = dept.Id }, dept);
         }
 
-        // PUT: api/Departments/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateDepartment(string id, Department dept)
+        public async Task<IActionResult> UpdateDepartment(string id, UpdateDepartmentDto dto)
         {
-            if (id != dept.Id) return BadRequest();
+            var tenantId = GetCurrentTenantId();
+            var existing = await _context.Departments.FindAsync(id);
 
-            _context.Entry(dept).State = EntityState.Modified;
+            if (existing == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && existing.TenantId != tenantId) return NotFound();
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Departments.Any(d => d.Id == id))
-                    return NotFound();
-                throw;
-            }
+            existing.Name = dto.Name;
+            existing.Description = dto.Description;
+            existing.Head = dto.Head;
 
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // PUT: api/Departments/archive/{id}
         [HttpPut("archive/{id}")]
         public async Task<IActionResult> ArchiveDepartment(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var dept = await _context.Departments.FindAsync(id);
+
             if (dept == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && dept.TenantId != tenantId) return NotFound();
 
             dept.Status = "Archived";
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpPut("restore/{id}")]
+        public async Task<IActionResult> RestoreDepartment(string id)
+        {
+            var tenantId = GetCurrentTenantId();
+            var dept = await _context.Departments.FindAsync(id);
+
+            if (dept == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && dept.TenantId != tenantId) return NotFound();
+
+            dept.Status = "Active";
             await _context.SaveChangesAsync();
             return NoContent();
         }

@@ -1,10 +1,12 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DFile.backend.Models
 {
     public class TaskItem
     {
-        public string Id { get; set; } = Guid.NewGuid().ToString(); // Using String as requested in frontend
+        [Key]
+        public string Id { get; set; } = Guid.NewGuid().ToString();
         [Required]
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
@@ -15,5 +17,8 @@ namespace DFile.backend.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool Archived { get; set; } = false;
         public int? TenantId { get; set; }
+
+        [ForeignKey("TenantId")]
+        public Tenant? Tenant { get; set; }
     }
 }

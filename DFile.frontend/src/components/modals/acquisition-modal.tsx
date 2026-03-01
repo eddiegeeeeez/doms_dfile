@@ -22,7 +22,7 @@ export function AcquisitionModal({ open, onOpenChange, replacementAsset }: Acqui
     const createOrderMutation = useCreateOrder();
 
     const [depreciationResult, setDepreciationResult] = useState<{ bookValue: number; monthlyDep: number } | null>(null);
-    const [selectedCategory, setSelectedCategory] = useState<string>(replacementAsset?.cat || "");
+    const [selectedCategory, setSelectedCategory] = useState<string>(replacementAsset?.categoryId || "");
 
     const handleFieldChange = (form: HTMLFormElement) => {
         const formData = new FormData(form);
@@ -60,54 +60,17 @@ export function AcquisitionModal({ open, onOpenChange, replacementAsset }: Acqui
         const vendor = formData.get("vendor") as string;
         const category = categories.find(c => c.id === selectedCategory);
 
-        const assetId = `AST-${Date.now().toString().slice(-6)}`;
-        const orderId = `PO-${Date.now().toString().slice(-6)}`;
-
-        // Calculate depreciation
-        const monthlyDepreciation = usefulLifeYears > 0 ? purchasePrice / (usefulLifeYears * 12) : 0;
-        let ageMonths = 0;
-        if (purchaseDate) {
-            const pd = new Date(purchaseDate);
-            const now = new Date();
-            ageMonths = Math.max(0, (now.getFullYear() - pd.getFullYear()) * 12 + (now.getMonth() - pd.getMonth()));
-        }
-        const totalDep = Math.min(monthlyDepreciation * ageMonths, purchasePrice);
-
-        const newAsset: Asset = {
-            id: assetId,
-            desc: assetName,
-            cat: category?.name || "Unknown",
-            status: "Available",
-            room: "—",
-            manufacturer,
-            model,
-            serialNumber,
-            purchaseDate,
-            vendor,
-            value: purchasePrice,
-            purchasePrice,
-            usefulLifeYears: usefulLifeYears > 0 ? usefulLifeYears : undefined,
-            monthlyDepreciation: monthlyDepreciation > 0 ? monthlyDepreciation : undefined,
-            currentBookValue: Math.max(purchasePrice - totalDep, 0),
-        };
-
-        const newOrder: PurchaseOrder = {
-            id: orderId,
+        createOrderMutation.mutate({
             assetName,
-            category: category?.name || "Unknown",
-            vendor,
-            manufacturer,
-            model,
-            serialNumber: "",
+            category: category?.categoryName || "Unknown",
+            vendor: vendor || undefined,
+            manufacturer: manufacturer || undefined,
+            model: model || undefined,
+            serialNumber: serialNumber || undefined,
             purchasePrice,
-            status: "Pending",
-            requestedBy: "USR-001",
-            createdAt: new Date().toISOString(),
-            usefulLifeYears: usefulLifeYears > 0 ? usefulLifeYears : 0,
-            purchaseDate: purchaseDate || new Date().toISOString()
-        };
-
-        createOrderMutation.mutate({ order: newOrder, asset: newAsset });
+            purchaseDate: purchaseDate || undefined,
+            usefulLifeYears: usefulLifeYears > 0 ? usefulLifeYears : undefined,
+        });
         onOpenChange(false);
     };
 
@@ -145,7 +108,7 @@ export function AcquisitionModal({ open, onOpenChange, replacementAsset }: Acqui
                                     </SelectTrigger>
                                     <SelectContent>
                                         {categories.map((c) => (
-                                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                            <SelectItem key={c.id} value={c.id}>{c.categoryName}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>

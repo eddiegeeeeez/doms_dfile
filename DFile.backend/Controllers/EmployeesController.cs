@@ -1,4 +1,5 @@
 using DFile.backend.Data;
+using DFile.backend.DTOs;
 using DFile.backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,8 +9,8 @@ namespace DFile.backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
-    public class EmployeesController : ControllerBase
+    [Authorize(Roles = "Admin,Maintenance,Super Admin")]
+    public class EmployeesController : TenantAwareController
     {
         private readonly AppDbContext _context;
 
@@ -19,158 +20,130 @@ namespace DFile.backend.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Employee>>> GetEmployees()
+        public async Task<ActionResult<IEnumerable<Employee>>> GetEmployees([FromQuery] bool showArchived = false)
         {
-            return await _context.Employees.ToListAsync();
+            var tenantId = GetCurrentTenantId();
+            var query = _context.Employees.AsQueryable();
+
+            if (!IsSuperAdmin() && tenantId.HasValue)
+            {
+                query = query.Where(e => e.TenantId == tenantId);
+            }
+
+            if (!showArchived)
+            {
+                query = query.Where(e => e.Status != "Archived");
+            }
+
+            return await query.ToListAsync();
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<Employee>> GetEmployee(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var employee = await _context.Employees.FindAsync(id);
 
-            if (employee == null)
-            {
-                return NotFound();
-            }
+            if (employee == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && employee.TenantId != tenantId) return NotFound();
 
             return employee;
         }
 
         [HttpPost]
-        public async Task<ActionResult<Employee>> PostEmployee(Employee employee)
+        [Authorize(Roles = "Admin,Super Admin")]
+        public async Task<ActionResult<Employee>> PostEmployee(CreateEmployeeDto dto)
         {
+            var tenantId = GetCurrentTenantId();
+
+            var employee = new Employee
+            {
+                Id = $"EMP-{DateTime.UtcNow:yyyyMMddHHmmssfff}",
+                FirstName = dto.FirstName,
+                MiddleName = dto.MiddleName,
+                LastName = dto.LastName,
+                Email = dto.Email,
+                ContactNumber = dto.ContactNumber,
+                Department = dto.Department,
+                Role = dto.Role,
+                HireDate = dto.HireDate,
+                Status = "Active",
+                TenantId = IsSuperAdmin() ? null : tenantId
+            };
+
             _context.Employees.Add(employee);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (EmployeeExists(employee.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetEmployee", new { id = employee.Id }, employee);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutEmployee(string id, Employee employee)
+        [Authorize(Roles = "Admin,Super Admin")]
+        public async Task<IActionResult> PutEmployee(string id, UpdateEmployeeDto dto)
         {
-            if (id != employee.Id)
-            {
-                return BadRequest();
-            }
+            var tenantId = GetCurrentTenantId();
+            var existing = await _context.Employees.FindAsync(id);
 
-            _context.Entry(employee).State = EntityState.Modified;
+            if (existing == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && existing.TenantId != tenantId) return NotFound();
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!EmployeeExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            existing.FirstName = dto.FirstName;
+            existing.MiddleName = dto.MiddleName;
+            existing.LastName = dto.LastName;
+            existing.Email = dto.Email;
+            existing.ContactNumber = dto.ContactNumber;
+            existing.Department = dto.Department;
+            existing.Role = dto.Role;
+            existing.HireDate = dto.HireDate;
+            existing.Status = dto.Status;
 
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // PUT: api/Employees/archive/5
         [HttpPut("archive/{id}")]
+        [Authorize(Roles = "Admin,Super Admin")]
         public async Task<IActionResult> ArchiveEmployee(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var employee = await _context.Employees.FindAsync(id);
-            if (employee == null)
-            {
-                return NotFound();
-            }
+
+            if (employee == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && employee.TenantId != tenantId) return NotFound();
 
             employee.Status = "Archived";
-            _context.Entry(employee).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!EmployeeExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // PUT: api/Employees/restore/5
         [HttpPut("restore/{id}")]
+        [Authorize(Roles = "Admin,Super Admin")]
         public async Task<IActionResult> RestoreEmployee(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var employee = await _context.Employees.FindAsync(id);
-            if (employee == null)
-            {
-                return NotFound();
-            }
+
+            if (employee == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && employee.TenantId != tenantId) return NotFound();
 
             employee.Status = "Active";
-            _context.Entry(employee).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!EmployeeExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Super Admin")]
         public async Task<IActionResult> DeleteEmployee(string id)
         {
+            var tenantId = GetCurrentTenantId();
             var employee = await _context.Employees.FindAsync(id);
-            if (employee == null)
-            {
-                return NotFound();
-            }
+
+            if (employee == null) return NotFound();
+            if (!IsSuperAdmin() && tenantId.HasValue && employee.TenantId != tenantId) return NotFound();
 
             _context.Employees.Remove(employee);
             await _context.SaveChangesAsync();
-
             return NoContent();
-        }
-
-        private bool EmployeeExists(string id)
-        {
-            return _context.Employees.Any(e => e.Id == id);
         }
     }
 }

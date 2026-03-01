@@ -1,36 +1,45 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MoreHorizontal, Search, Shield, UserX, UserCheck, Archive, Filter, Building2, RotateCcw, Edit, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { MoreHorizontal, Search, Archive, Filter, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EditTenantModal } from "./modals/edit-tenant-modal";
 import { TenantDetailsModal } from "./modals/tenant-details-modal";
 import api from "@/lib/api";
 
-// Define local interface if not yet in types
 interface TenantDto {
     id: number;
     name: string;
-    subscriptionPlan: number; // enum
+    subscriptionPlan: number;
     maxRooms: number;
     maxPersonnel: number;
     createdAt: string;
     status: string;
+}
+
+type SortKey = "name" | "subscriptionPlan" | "createdAt" | "status";
+type SortDir = "asc" | "desc";
+
+function getPlanName(plan: number) {
+    switch (plan) {
+        case 0: return "Starter";
+        case 1: return "Basic";
+        case 2: return "Pro";
+        default: return "Unknown";
+    }
 }
 
 export function TenantList() {
@@ -39,103 +48,136 @@ export function TenantList() {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [showArchived, setShowArchived] = useState(false);
-    
-    // Modals State
+
+    // Sort state
+    const [sortKey, setSortKey] = useState<SortKey | null>(null);
+    const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+    // Confirm dialog state
+    const [confirmState, setConfirmState] = useState<{
+        tenantId: number;
+        action: "archive" | "restore";
+        tenantName: string;
+    } | null>(null);
+    const [isConfirming, setIsConfirming] = useState(false);
+
+    // Modals
     const [selectedTenant, setSelectedTenant] = useState<TenantDto | null>(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     const fetchTenants = async () => {
         try {
-            const { data } = await api.get<TenantDto[]>('/api/tenants');
+            const { data } = await api.get<TenantDto[]>("/api/tenants");
             setTenants(data);
         } catch {
-            toast.error('Failed to load tenants');
+            toast.error("Failed to load organizations");
         } finally {
             setIsLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchTenants();
-    }, []);
+    useEffect(() => { fetchTenants(); }, []);
+
+    const toggleSort = (key: SortKey) => {
+        if (sortKey === key) {
+            setSortDir(d => d === "asc" ? "desc" : "asc");
+        } else {
+            setSortKey(key);
+            setSortDir("asc");
+        }
+    };
+
+    const sorted = (key: SortKey): "asc" | "desc" | false =>
+        sortKey === key ? sortDir : false;
 
     const updateTenantStatus = async (id: number, status: string) => {
         try {
             await api.put(`/api/tenants/${id}/status`, { status });
             setTenants(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+            toast.success(`Organization ${status === "Active" ? "restored" : "archived"} successfully`);
         } catch {
-            toast.error('Failed to update tenant status');
+            toast.error("Failed to update organization status");
         }
+    };
+
+    const handleConfirm = async () => {
+        if (!confirmState) return;
+        setIsConfirming(true);
+        const newStatus = confirmState.action === "archive" ? "Archived" : "Active";
+        await updateTenantStatus(confirmState.tenantId, newStatus);
+        setIsConfirming(false);
+        setConfirmState(null);
     };
 
     const handleRowClick = (tenant: TenantDto) => {
         setSelectedTenant(tenant);
         setIsDetailsModalOpen(true);
     };
-    
+
     const handleEditFromDetails = () => {
         setIsDetailsModalOpen(false);
         setIsEditModalOpen(true);
     };
 
     const handleSave = (updatedTenant: TenantDto) => {
-        // Update local state
         setTenants(prev => prev.map(t => t.id === updatedTenant.id ? updatedTenant : t));
         setIsEditModalOpen(false);
         setSelectedTenant(null);
     };
 
-    const filteredTenants = tenants.filter(t => {
-        // Search
+    // Filter
+    const filtered = tenants.filter(t => {
         if (searchQuery && !t.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-        
-        // Status Filter
         if (statusFilter !== "All" && t.status !== statusFilter) return false;
-        
-        // Archive Filter - Toggle between Active and Archived/Inactive
         if (showArchived) {
-            // Show ONLY Archived/Inactive
             if (t.status !== "Archived" && t.status !== "Inactive") return false;
         } else {
-            // Show ONLY Active (Hide Archived/Inactive)
             if (t.status === "Archived" || t.status === "Inactive") return false;
         }
-        
         return true;
     });
 
-    const getPlanName = (plan: number) => {
-        switch(plan) {
-            case 0: return "Starter";
-            case 1: return "Basic";
-            case 2: return "Pro";
-            default: return "Unknown";
-        }
-    };
+    // Sort
+    const displayTenants = [...filtered].sort((a, b) => {
+        if (!sortKey) return 0;
+        let av: string | number = "";
+        let bv: string | number = "";
+        if (sortKey === "name") { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
+        else if (sortKey === "subscriptionPlan") { av = getPlanName(a.subscriptionPlan).toLowerCase(); bv = getPlanName(b.subscriptionPlan).toLowerCase(); }
+        else if (sortKey === "createdAt") { av = new Date(a.createdAt).getTime(); bv = new Date(b.createdAt).getTime(); }
+        else if (sortKey === "status") { av = (a.status ?? "").toLowerCase(); bv = (b.status ?? "").toLowerCase(); }
+        if (av < bv) return sortDir === "asc" ? -1 : 1;
+        if (av > bv) return sortDir === "asc" ? 1 : -1;
+        return 0;
+    });
+
+    const activeCount = tenants.filter(t => t.status !== "Inactive" && t.status !== "Archived").length;
+    const archivedCount = tenants.filter(t => t.status === "Inactive" || t.status === "Archived").length;
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col gap-2">
-                <h3 className="text-2xl font-bold tracking-tight text-foreground">Registered Organizations</h3>
-                <p className="text-muted-foreground">Manage organization access and subscriptions</p>
+            <div className="space-y-1">
+                <h2 className="text-2xl font-bold tracking-tight">Registered Organizations</h2>
+                <p className="text-muted-foreground text-sm">Manage organization access and status across the platform</p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-                <div className="flex flex-1 gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 items-center">
-                    <div className="relative flex-1 max-w-sm min-w-[200px]">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            {/* Toolbar */}
+            <div className="flex flex-col lg:flex-row gap-3 justify-between items-start lg:items-center">
+                <div className="flex flex-1 flex-wrap gap-3 w-full lg:w-auto items-center">
+                    <div className="relative flex-1 max-w-sm min-w-[220px]">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search organizations..."
+                            placeholder="Search organizations…"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 h-9 text-sm"
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="pl-9 h-10"
                         />
                     </div>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[160px] h-9 text-sm">
+                        <SelectTrigger className="w-[160px] h-10">
                             <div className="flex items-center gap-2">
-                                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                                <Filter className="h-4 w-4 text-muted-foreground" />
                                 <SelectValue placeholder="Status" />
                             </div>
                         </SelectTrigger>
@@ -147,133 +189,181 @@ export function TenantList() {
                         </SelectContent>
                     </Select>
                 </div>
-
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <Button 
-                        variant={showArchived ? "default" : "outline"}
-                        size="sm" 
-                        className="h-10 px-4 text-sm w-[160px] justify-start"
-                        onClick={() => setShowArchived(!showArchived)}
-                    >
-                        {showArchived ? (
-                            <><RotateCcw size={16} className="mr-2" />Show Active ({tenants.filter(t => t.status !== "Inactive" && t.status !== "Archived").length})</>
-                        ) : (
-                            <><Archive size={16} className="mr-2" />Show Archive ({tenants.filter(t => t.status === "Inactive" || t.status === "Archived").length})</>
-                        )}
-                    </Button>
-                </div>
+                <Button
+                    variant={showArchived ? "default" : "outline"}
+                    className="h-10 px-4 gap-2 w-full lg:w-auto"
+                    onClick={() => setShowArchived(v => !v)}
+                >
+                    {showArchived ? (
+                        <><RotateCcw className="h-4 w-4" />Active ({activeCount})</>
+                    ) : (
+                        <><Archive className="h-4 w-4" />Archived ({archivedCount})</>
+                    )}
+                </Button>
             </div>
 
-            <Card className="overflow-hidden">
-                <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <Table className="w-full table-fixed">
-                    <TableHeader>
-                        <TableRow className="bg-muted/50 hover:bg-muted/50">
-                            <TableHead className="px-4 py-3 align-middle text-xs font-medium text-muted-foreground w-[250px] text-left">Organization</TableHead>
-                            <TableHead className="px-4 py-3 align-middle text-xs font-medium text-muted-foreground text-left w-[20%]">Subscription</TableHead>
-                            <TableHead className="px-4 py-3 align-middle text-xs font-medium text-muted-foreground text-right w-[15%]">Limits (Rooms/Staff)</TableHead>
-                            <TableHead className="px-4 py-3 align-middle text-xs font-medium text-muted-foreground text-center w-[120px]">Created</TableHead>
-                            <TableHead className="px-4 py-3 align-middle text-xs font-medium text-muted-foreground text-center w-[100px]">Status</TableHead>
-                            <TableHead className="px-4 py-3 align-middle text-xs font-medium text-muted-foreground text-center w-[100px]">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
+            {/* Table */}
+            <Card>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center py-8">
-                                    Loading tenants...
-                                </TableCell>
-                            </TableRow>
-                        ) : filteredTenants.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center py-8 text-muted-foreground">
-                                    {showArchived ? "No archived organizations yet" : "No organizations match your search"}
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredTenants.map((tenant) => (
-                                <TableRow 
-                                    key={tenant.id} 
-                                    className="hover:bg-muted/30 transition-colors cursor-pointer"
-                                    onClick={() => handleRowClick(tenant)}
+                                <SortableTableHead
+                                    className="w-[260px]"
+                                    sorted={sorted("name")}
+                                    onSort={() => toggleSort("name")}
                                 >
-                                    <TableCell className="px-4 py-3 align-middle font-normal">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-normal text-foreground">{tenant.name}</span>
-                                            <span className="text-xs text-muted-foreground">ID: {tenant.id}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="px-4 py-3 align-middle text-left">
-                                        <span className="text-sm font-normal text-muted-foreground">
-                                            {getPlanName(tenant.subscriptionPlan)}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="px-4 py-3 align-middle text-sm text-muted-foreground text-right">
-                                        {tenant.maxRooms} / {tenant.maxPersonnel}
-                                    </TableCell>
-                                    <TableCell className="px-4 py-3 align-middle text-sm text-muted-foreground text-center">
-                                        {new Date(tenant.createdAt).toLocaleDateString()}
-                                    </TableCell>
-                                    <TableCell className="px-4 py-3 align-middle text-center">
-                                        <span 
-                                            className={`text-sm font-normal inline-block
-                                                ${tenant.status === 'Active' ? 'text-emerald-700 dark:text-emerald-400' : 
-                                                  tenant.status === 'Inactive' ? 'text-amber-700 dark:text-amber-400' :
-                                                  'text-gray-700 dark:text-gray-400'}
-                                            `}
-                                        >
-                                            {tenant.status || 'Active'}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="px-4 py-3 align-middle text-center" onClick={(e) => e.stopPropagation()}>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                const newStatus = (tenant.status === 'Archived' || tenant.status === 'Inactive') ? 'Active' : 'Archived';
-                                                updateTenantStatus(tenant.id, newStatus);
-                                            }}
-                                            title={(tenant.status === 'Archived' || tenant.status === 'Inactive') ? "Recall / Restore" : "Archive Association"}
-                                        >
-                                            {(tenant.status === 'Archived' || tenant.status === 'Inactive') ? (
-                                                <RotateCcw className="h-4 w-4" />
-                                            ) : (
-                                                <Archive className="h-4 w-4" />
-                                            )}
-                                        </Button>
+                                    Organization
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    className="w-[160px]"
+                                    sorted={sorted("subscriptionPlan")}
+                                    onSort={() => toggleSort("subscriptionPlan")}
+                                >
+                                    Subscription
+                                </SortableTableHead>
+                                <TableHead className="text-right w-[15%]">Limits (Rooms / Staff)</TableHead>
+                                <SortableTableHead
+                                    className="text-center w-[130px]"
+                                    sorted={sorted("createdAt")}
+                                    onSort={() => toggleSort("createdAt")}
+                                >
+                                    Created
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    className="text-center w-[110px]"
+                                    sorted={sorted("status")}
+                                    onSort={() => toggleSort("status")}
+                                >
+                                    Status
+                                </SortableTableHead>
+                                <TableHead className="text-center w-[80px]">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                        Loading organizations…
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
-            {/* Simple Pagination Mock - To match AssetTable look */}
-            <div className="p-4 border-t border-border flex items-center justify-between bg-muted/20">
-                <div className="text-xs text-muted-foreground font-normal">
-                    Showing {filteredTenants.length} tenants
+                            ) : displayTenants.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                        {showArchived ? "No archived organizations" : "No organizations match your search"}
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                displayTenants.map(tenant => (
+                                    <TableRow
+                                        key={tenant.id}
+                                        className="cursor-pointer"
+                                        onClick={() => handleRowClick(tenant)}
+                                    >
+                                        <TableCell>
+                                            <div className="space-y-0.5">
+                                                <span className="font-medium">{tenant.name}</span>
+                                                <span className="text-xs text-muted-foreground block">ID: {tenant.id}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            {getPlanName(tenant.subscriptionPlan)}
+                                        </TableCell>
+                                        <TableCell className="text-right text-muted-foreground tabular-nums">
+                                            {tenant.maxRooms} / {tenant.maxPersonnel}
+                                        </TableCell>
+                                        <TableCell className="text-center text-muted-foreground">
+                                            {new Date(tenant.createdAt).toLocaleDateString()}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <span className={`text-sm font-medium ${
+                                                tenant.status === "Active" ? "text-emerald-600" :
+                                                tenant.status === "Inactive" ? "text-amber-600" :
+                                                "text-muted-foreground"
+                                            }`}>
+                                                {tenant.status || "Active"}
+                                            </span>
+                                        </TableCell>
+
+                                        {/* Meatball menu */}
+                                        <TableCell className="text-center" onClick={e => e.stopPropagation()}>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                        <span className="sr-only">Actions</span>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-40 z-[200]">
+                                                    {(tenant.status === "Archived" || tenant.status === "Inactive") ? (
+                                                        <DropdownMenuItem
+                                                            onClick={() => setConfirmState({
+                                                                tenantId: tenant.id,
+                                                                action: "restore",
+                                                                tenantName: tenant.name,
+                                                            })}
+                                                            className="gap-2 cursor-pointer"
+                                                        >
+                                                            <RotateCcw className="h-4 w-4 text-primary" />
+                                                            Restore
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem
+                                                            onClick={() => setConfirmState({
+                                                                tenantId: tenant.id,
+                                                                action: "archive",
+                                                                tenantName: tenant.name,
+                                                            })}
+                                                            className="gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                                                        >
+                                                            <Archive className="h-4 w-4" />
+                                                            Archive
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
                 </div>
-            </div>
-                </CardContent>
+                <div className="px-6 py-4 border-t border-border/40">
+                    <p className="text-sm text-muted-foreground">
+                        Showing {displayTenants.length} of {filtered.length} organization{filtered.length !== 1 ? "s" : ""}
+                    </p>
+                </div>
             </Card>
 
-            {/* View Details Modal */}
-            <TenantDetailsModal 
-                open={isDetailsModalOpen} 
-                onOpenChange={setIsDetailsModalOpen} 
+            {/* Modals */}
+            <TenantDetailsModal
+                open={isDetailsModalOpen}
+                onOpenChange={setIsDetailsModalOpen}
                 tenant={selectedTenant}
                 onEdit={handleEditFromDetails}
             />
+            <EditTenantModal
+                open={isEditModalOpen}
+                onOpenChange={setIsEditModalOpen}
+                tenant={selectedTenant}
+                onSave={handleSave}
+            />
 
-            {/* Edit Modal (Reused) */}
-            <EditTenantModal 
-                open={isEditModalOpen} 
-                onOpenChange={setIsEditModalOpen} 
-                tenant={selectedTenant} 
-                onSave={handleSave} 
+            {/* Archive / Restore confirmation */}
+            <ConfirmDialog
+                open={!!confirmState}
+                onOpenChange={open => { if (!open) setConfirmState(null); }}
+                title={confirmState?.action === "archive" ? "Archive Organization" : "Restore Organization"}
+                description={
+                    confirmState?.action === "archive"
+                        ? `Archive "${confirmState?.tenantName}"? It will be hidden from active views and its users will lose access.`
+                        : `Restore "${confirmState?.tenantName}"? It will become active and its users will regain access.`
+                }
+                confirmLabel={confirmState?.action === "archive" ? "Archive" : "Restore"}
+                confirmVariant={confirmState?.action === "archive" ? "destructive" : "default"}
+                onConfirm={handleConfirm}
+                isLoading={isConfirming}
             />
         </div>
     );

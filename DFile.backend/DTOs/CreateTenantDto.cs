@@ -8,8 +8,13 @@ namespace DFile.backend.DTOs
         [Required]
         public string TenantName { get; set; } = string.Empty;
 
+        public string BusinessAddress { get; set; } = string.Empty;
+
         [Required]
-        public string AdminName { get; set; } = string.Empty;
+        public string AdminFirstName { get; set; } = string.Empty;
+
+        [Required]
+        public string AdminLastName { get; set; } = string.Empty;
 
         [Required]
         [EmailAddress]

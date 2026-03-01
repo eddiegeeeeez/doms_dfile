@@ -4,6 +4,23 @@ import api from '@/lib/api';
 import { MaintenanceRecord } from '@/types/asset';
 import { toast } from 'sonner';
 
+interface CreateMaintenancePayload {
+    assetId: string;
+    description: string;
+    status?: string;
+    priority?: string;
+    type?: string;
+    frequency?: string;
+    startDate?: string;
+    endDate?: string;
+    cost?: number;
+    attachments?: string;
+}
+
+interface UpdateMaintenancePayload extends CreateMaintenancePayload {
+    dateReported?: string;
+}
+
 export function useMaintenanceRecords(showArchived: boolean = false) {
     return useQuery({
         queryKey: ['maintenance', showArchived],
@@ -20,8 +37,8 @@ export function useAddMaintenanceRecord() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (record: Omit<MaintenanceRecord, 'id'>) => {
-            const { data } = await api.post<MaintenanceRecord>('/api/maintenance', record);
+        mutationFn: async (payload: CreateMaintenancePayload) => {
+            const { data } = await api.post<MaintenanceRecord>('/api/maintenance', payload);
             return data;
         },
         onSuccess: () => {
@@ -38,9 +55,9 @@ export function useUpdateMaintenanceRecord() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (record: MaintenanceRecord) => {
-            await api.put(`/api/maintenance/${record.id}`, record);
-            return record;
+        mutationFn: async ({ id, payload }: { id: string; payload: UpdateMaintenancePayload }) => {
+            const { data } = await api.put<MaintenanceRecord>(`/api/maintenance/${id}`, payload);
+            return data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['maintenance'] });
@@ -56,11 +73,23 @@ export function useUpdateMaintenanceStatus() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ id, status }: { id: string; status: any }) => {
-             const { data: record } = await api.get<MaintenanceRecord>(`/api/maintenance/${id}`);
-             const updatedRecord = { ...record, status };
-             await api.put(`/api/maintenance/${id}`, updatedRecord);
-             return updatedRecord;
+        mutationFn: async ({ id, status }: { id: string; status: string }) => {
+            const { data: record } = await api.get<MaintenanceRecord>(`/api/maintenance/${id}`);
+            const payload: UpdateMaintenancePayload = {
+                assetId: record.assetId,
+                description: record.description,
+                status,
+                priority: record.priority,
+                type: record.type,
+                frequency: record.frequency,
+                startDate: record.startDate,
+                endDate: record.endDate,
+                cost: record.cost,
+                attachments: record.attachments,
+                dateReported: record.dateReported,
+            };
+            await api.put(`/api/maintenance/${id}`, payload);
+            return { ...record, status };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['maintenance'] });

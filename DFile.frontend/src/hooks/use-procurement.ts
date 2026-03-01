@@ -1,9 +1,26 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PurchaseOrder, Asset } from '@/types/asset';
+import { PurchaseOrder } from '@/types/asset';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import { useAddAsset } from './use-assets';
+
+interface CreatePurchaseOrderPayload {
+    assetName: string;
+    category?: string;
+    vendor?: string;
+    manufacturer?: string;
+    model?: string;
+    serialNumber?: string;
+    purchasePrice: number;
+    purchaseDate?: string;
+    usefulLifeYears?: number;
+    requestedBy?: string;
+}
+
+interface UpdatePurchaseOrderPayload extends CreatePurchaseOrderPayload {
+    status?: string;
+    assetId?: string;
+}
 
 export function usePurchaseOrders() {
     return useQuery({
@@ -17,20 +34,36 @@ export function usePurchaseOrders() {
 
 export function useCreateOrder() {
     const queryClient = useQueryClient();
-    const addAssetMutation = useAddAsset();
 
     return useMutation({
-        mutationFn: async ({ order, asset }: { order: PurchaseOrder; asset: Asset }) => {
-            const { data } = await api.post<PurchaseOrder>('/api/PurchaseOrders', order);
-            return { createdOrder: data, asset };
+        mutationFn: async (payload: CreatePurchaseOrderPayload) => {
+            const { data } = await api.post<PurchaseOrder>('/api/PurchaseOrders', payload);
+            return data;
         },
-        onSuccess: async ({ asset }) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
-            await addAssetMutation.mutateAsync(asset);
             toast.success('Procurement order initiated');
         },
         onError: () => {
             toast.error('Failed to create procurement order');
+        },
+    });
+}
+
+export function useUpdateOrder() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ id, payload }: { id: string; payload: UpdatePurchaseOrderPayload }) => {
+            const { data } = await api.put<PurchaseOrder>(`/api/PurchaseOrders/${id}`, payload);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+            toast.success('Order updated');
+        },
+        onError: () => {
+            toast.error('Failed to update order');
         },
     });
 }

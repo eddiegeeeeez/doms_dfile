@@ -124,7 +124,8 @@ export function TenantRegistrationForm() {
         try {
             await api.post('/api/Tenants', {
                 tenantName,
-                adminName: `${firstName}${middleName ? ' ' + middleName : ''} ${lastName}`.trim(),
+                adminFirstName: firstName,
+                adminLastName: lastName,
                 adminEmail: workEmail,
                 adminPassword: initialPassword,
                 subscriptionPlan: selectedPlan,
