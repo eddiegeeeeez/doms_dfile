@@ -1,7 +1,7 @@
 "use client";
 
 import { AppShell, NavSection } from "@/components/app-shell";
-import { LayoutDashboard, Building2, QrCode, ArrowLeftRight, MapPin, Tag, ShoppingCart, Wrench, PieChart, CheckCircle2 } from "lucide-react";
+import { LayoutDashboard, Building2, QrCode, ArrowLeftRight, MapPin, Tag, ShoppingCart, Wrench, PieChart, CheckCircle2, CreditCard } from "lucide-react";
 import { UserRole } from "@/types/asset";
 
 const REQUIRED_ROLES: UserRole[] = ["Admin", "Procurement", "Employee"];
@@ -12,6 +12,7 @@ const navSections: NavSection[] = [
         items: [
             { href: "/tenant/dashboard",          label: "Dashboard",              icon: LayoutDashboard },
             { href: "/tenant/organization",       label: "Organization Structure", icon: Building2 },
+            { href: "/tenant/billing",            label: "Billing",                icon: CreditCard, allowedRoles: ["Admin"] },
         ],
     },
     {

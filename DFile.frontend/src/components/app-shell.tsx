@@ -431,7 +431,7 @@ export function AppShell({ children, navSections, requiredRoles, homePath }: App
                     </header>
 
                     {/* Page Content — top padding reserves space for fixed header (matches previous py-8 + in-flow header) */}
-                    <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-[calc(72px+2rem)] pb-8 w-full max-w-[1400px] mx-auto min-h-0">
+                    <main className="flex-1 flex flex-col min-h-0 px-4 sm:px-6 lg:px-8 pt-[calc(72px+2rem)] pb-8 w-full max-w-[1400px] mx-auto">
                         {children}
                     </main>
                 </div>

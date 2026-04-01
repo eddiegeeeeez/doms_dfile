@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TablePagination, paginateData } from "@/components/ui/table-pagination";
+import { DataTableCard } from "@/components/ui/data-table-card";
 import { Employee } from "@/types/asset";
 import {
     useRoles, useDepartments, useEmployees,
@@ -236,13 +237,23 @@ export default function OrganizationPage() {
                     {rolesLoading ? (
                         <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
                     ) : filteredRoles.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground rounded-md border min-h-[520px] flex flex-col items-center justify-center">
+                        <div className="text-center py-12 text-muted-foreground rounded-md border min-h-[12rem] flex flex-col items-center justify-center">
                             <ShieldCheck className="h-12 w-12 mx-auto mb-4 opacity-20" />
                             <p>{roleShowArchived ? "No archived roles" : "No roles found"}</p>
                             {!roleShowArchived && <p className="text-xs mt-1">Define a role to get started</p>}
                         </div>
                     ) : (
-                        <div className="rounded-md border overflow-auto min-h-[520px]">
+                        <DataTableCard
+                            footer={
+                                <TablePagination
+                                    totalItems={filteredRoles.length}
+                                    pageSize={rolePageSize}
+                                    pageIndex={rolePageIndex}
+                                    onPageChange={setRolePageIndex}
+                                    onPageSizeChange={setRolePageSize}
+                                />
+                            }
+                        >
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -275,14 +286,7 @@ export default function OrganizationPage() {
                                     ))}
                                 </TableBody>
                             </Table>
-                            <TablePagination
-                                totalItems={filteredRoles.length}
-                                pageSize={rolePageSize}
-                                pageIndex={rolePageIndex}
-                                onPageChange={setRolePageIndex}
-                                onPageSizeChange={setRolePageSize}
-                            />
-                        </div>
+                        </DataTableCard>
                     )}
                 </TabsContent>
 
@@ -314,13 +318,23 @@ export default function OrganizationPage() {
                     {empLoading ? (
                         <div className="space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
                     ) : filteredEmps.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground rounded-md border min-h-[520px] flex flex-col items-center justify-center">
+                        <div className="text-center py-12 text-muted-foreground rounded-md border min-h-[12rem] flex flex-col items-center justify-center">
                             <Users className="h-12 w-12 mx-auto mb-4 opacity-20" />
                             <p>{empShowArchived ? "No archived personnel" : "No personnel found"}</p>
                             {!empShowArchived && <p className="text-xs mt-1">Define roles first, then register personnel</p>}
                         </div>
                     ) : (
-                        <div className="rounded-md border overflow-auto min-h-[520px]">
+                        <DataTableCard
+                            footer={
+                                <TablePagination
+                                    totalItems={filteredEmps.length}
+                                    pageSize={empPageSize}
+                                    pageIndex={empPageIndex}
+                                    onPageChange={setEmpPageIndex}
+                                    onPageSizeChange={setEmpPageSize}
+                                />
+                            }
+                        >
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -353,14 +367,7 @@ export default function OrganizationPage() {
                                     ))}
                                 </TableBody>
                             </Table>
-                            <TablePagination
-                                totalItems={filteredEmps.length}
-                                pageSize={empPageSize}
-                                pageIndex={empPageIndex}
-                                onPageChange={setEmpPageIndex}
-                                onPageSizeChange={setEmpPageSize}
-                            />
-                        </div>
+                        </DataTableCard>
                     )}
                 </TabsContent>
             </Tabs>

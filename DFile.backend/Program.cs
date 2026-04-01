@@ -1,3 +1,4 @@
+using DFile.backend.Configuration;
 using DFile.backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -18,6 +19,28 @@ builder.Services.AddScoped<DFile.backend.Services.PermissionService>();
 builder.Services.AddScoped<DFile.backend.Services.IAuditService, DFile.backend.Services.AuditService>();
 builder.Services.AddScoped<DFile.backend.Services.INotificationService, DFile.backend.Services.NotificationService>();
 builder.Services.AddHostedService<DFile.backend.Services.DepreciationReconciliationService>();
+builder.Services.AddHostedService<DFile.backend.Services.MaintenanceDueReminderService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<DFile.backend.Services.ITenantContext, DFile.backend.Services.HttpTenantContext>();
+
+builder.Services.Configure<PayMongoOptions>(builder.Configuration.GetSection(PayMongoOptions.SectionName));
+builder.Services.Configure<PaymentAppOptions>(builder.Configuration.GetSection(PaymentAppOptions.SectionName));
+builder.Services.PostConfigure<PayMongoOptions>(opts =>
+{
+    var cfg = builder.Configuration;
+    var sk = cfg["PAYMONGO_SECRET_KEY"];
+    var pk = cfg["PAYMONGO_PUBLIC_KEY"];
+    var wh = cfg["PAYMONGO_WEBHOOK_SECRET"];
+    if (!string.IsNullOrEmpty(sk)) opts.SecretKey = sk;
+    if (!string.IsNullOrEmpty(pk)) opts.PublicKey = pk;
+    if (!string.IsNullOrEmpty(wh)) opts.WebhookSecret = wh;
+});
+
+builder.Services.AddHttpClient<DFile.backend.Services.IPayMongoPaymentService, DFile.backend.Services.PayMongoPaymentService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.paymongo.com/");
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
 builder.Services.AddScoped<DFile.backend.Authorization.PermissionAuthorizationFilter>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -221,6 +244,14 @@ app.UseAuthorization();
 app.Use(async (context, next) =>
 {
     if (!context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+    {
+        await next();
+        return;
+    }
+
+    // Webhooks must not be blocked by duplicate-body hashing; PayMongo may retry identical payloads.
+    var p = context.Request.Path.Value ?? "";
+    if (p.StartsWith("/api/payments/paymongo/webhook", StringComparison.OrdinalIgnoreCase))
     {
         await next();
         return;

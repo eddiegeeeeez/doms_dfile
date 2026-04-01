@@ -235,10 +235,10 @@ export default function SchedulesPage() {
                     <SelectTrigger className="w-[160px]"><SelectValue placeholder="Frequency" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Frequencies</SelectItem>
+                        <SelectItem value="One-time">One-time</SelectItem>
                         <SelectItem value="Daily">Daily</SelectItem>
                         <SelectItem value="Weekly">Weekly</SelectItem>
                         <SelectItem value="Monthly">Monthly</SelectItem>
-                        <SelectItem value="Quarterly">Quarterly</SelectItem>
                         <SelectItem value="Yearly">Yearly</SelectItem>
                     </SelectContent>
                 </Select>
@@ -283,6 +283,7 @@ export default function SchedulesPage() {
                                     <TableHead>Status</TableHead>
                                     <TableHead>Start Date</TableHead>
                                     <TableHead>End Date</TableHead>
+                                    <TableHead>Next Due</TableHead>
                                     <TableHead className="text-right">Action</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -325,6 +326,9 @@ export default function SchedulesPage() {
                                             </TableCell>
                                             <TableCell className="text-sm text-muted-foreground tabular-nums">
                                                 {r.endDate ? new Date(r.endDate).toLocaleDateString() : "—"}
+                                            </TableCell>
+                                            <TableCell className="text-sm text-muted-foreground tabular-nums">
+                                                {r.nextDueDate ? new Date(r.nextDueDate).toLocaleDateString() : "—"}
                                             </TableCell>
                                             <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                                                 {(() => {

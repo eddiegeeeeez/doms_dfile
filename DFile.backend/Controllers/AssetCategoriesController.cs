@@ -68,6 +68,7 @@ namespace DFile.backend.Controllers
                 CategoryName = c.CategoryName,
                 HandlingType = c.HandlingType,
                 Description = c.Description,
+                SalvagePercentage = c.SalvagePercentage,
                 IsArchived = c.IsArchived,
                 TenantId = c.TenantId,
                 AssetCount = assetCounts.TryGetValue(c.Id, out var count) ? count : 0,
@@ -107,6 +108,7 @@ namespace DFile.backend.Controllers
                 CategoryName = category.CategoryName,
                 HandlingType = category.HandlingType,
                 Description = category.Description,
+                SalvagePercentage = category.SalvagePercentage,
                 IsArchived = category.IsArchived,
                 TenantId = category.TenantId,
                 AssetCount = itemCount,
@@ -164,6 +166,7 @@ namespace DFile.backend.Controllers
                 CategoryName = dto.CategoryName,
                 HandlingType = dto.HandlingType,
                 Description = dto.Description,
+                SalvagePercentage = dto.SalvagePercentage,
                 IsArchived = false,
                 TenantId = IsSuperAdmin() ? null : tenantId,
                 CreatedAt = DateTime.UtcNow,
@@ -182,7 +185,7 @@ namespace DFile.backend.Controllers
                 Module = "Configuration",
                 UserId = userId,
                 TenantId = tenantId,
-                NewValues = JsonSerializer.Serialize(new { category.CategoryName, HandlingType = category.HandlingType.ToString(), category.Description }),
+                NewValues = JsonSerializer.Serialize(new { category.CategoryName, HandlingType = category.HandlingType.ToString(), category.Description, category.SalvagePercentage }),
             });
 
             await _context.SaveChangesAsync();
@@ -194,6 +197,7 @@ namespace DFile.backend.Controllers
                 CategoryName = category.CategoryName,
                 HandlingType = category.HandlingType,
                 Description = category.Description,
+                SalvagePercentage = category.SalvagePercentage,
                 IsArchived = category.IsArchived,
                 TenantId = category.TenantId,
                 AssetCount = 0,
@@ -239,11 +243,12 @@ namespace DFile.backend.Controllers
                 _context.Entry(existing).Property(p => p.RowVersion).OriginalValue = dto.RowVersion;
             }
 
-            var oldValues = JsonSerializer.Serialize(new { existing.CategoryName, HandlingType = existing.HandlingType.ToString(), existing.Description });
+            var oldValues = JsonSerializer.Serialize(new { existing.CategoryName, HandlingType = existing.HandlingType.ToString(), existing.Description, existing.SalvagePercentage });
 
             existing.CategoryName = dto.CategoryName;
             existing.HandlingType = dto.HandlingType;
             existing.Description = dto.Description;
+            existing.SalvagePercentage = dto.SalvagePercentage;
             existing.UpdatedAt = DateTime.UtcNow;
             existing.UpdatedBy = userId;
 
@@ -256,7 +261,7 @@ namespace DFile.backend.Controllers
                 UserId = userId,
                 TenantId = tenantId,
                 OldValues = oldValues,
-                NewValues = JsonSerializer.Serialize(new { dto.CategoryName, HandlingType = dto.HandlingType.ToString(), dto.Description }),
+                NewValues = JsonSerializer.Serialize(new { dto.CategoryName, HandlingType = dto.HandlingType.ToString(), dto.Description, dto.SalvagePercentage }),
             });
 
             try

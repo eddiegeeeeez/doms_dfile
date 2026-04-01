@@ -40,12 +40,21 @@ export function AddAssetForm({ categories, existingSerialNumbers = [], onCancel,
 
     const initialCategoryId = initialData ? categories.find(c => c.id === initialData.categoryId)?.id : undefined;
     const [selectedCategoryId, setSelectedCategoryId] = useState<string>(initialCategoryId ?? "");
+    const [isSalvageOverride, setIsSalvageOverride] = useState<boolean>(initialData?.isSalvageOverride ?? false);
+    const [salvagePercentage, setSalvagePercentage] = useState<number>(initialData?.salvagePercentage ?? 10);
 
     useEffect(() => {
         if (!initialData) return;
         const resolved = categories.find(c => c.id === initialData.categoryId)?.id ?? "";
         setSelectedCategoryId(resolved);
     }, [initialData, categories]);
+
+    useEffect(() => {
+        const cat = categories.find(c => c.id === selectedCategoryId);
+        if (cat && !isSalvageOverride) {
+            setSalvagePercentage(Number(cat.salvagePercentage ?? 10));
+        }
+    }, [selectedCategoryId, categories, isSalvageOverride]);
 
     const todayStr = new Date().toISOString().split("T")[0];
 
@@ -104,6 +113,8 @@ export function AddAssetForm({ categories, existingSerialNumbers = [], onCancel,
                 value: purchasePrice,
                 purchasePrice: purchasePrice,
                 usefulLifeYears: usefulLifeYears > 0 ? usefulLifeYears : undefined,
+                isSalvageOverride,
+                salvagePercentage: isSalvageOverride ? salvagePercentage : undefined,
             };
             try {
                 setIsSubmitting(true);
@@ -191,6 +202,37 @@ export function AddAssetForm({ categories, existingSerialNumbers = [], onCancel,
                             <div className="space-y-2.5">
                                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Useful Life (Years)</Label>
                                 <Input name="usefulLifeYears" defaultValue={initialData?.usefulLifeYears} type="number" placeholder="e.g. 5" className="h-10 w-full" />
+                            </div>
+
+                            <div className="col-span-1 md:col-span-2 mt-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <input 
+                                        type="checkbox" 
+                                        id="overrideSalvage" 
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        checked={isSalvageOverride} 
+                                        onChange={(e) => setIsSalvageOverride(e.target.checked)} 
+                                    />
+                                    <Label htmlFor="overrideSalvage" className="text-sm font-semibold cursor-pointer select-none">Override Category Default Salvage %</Label>
+                                </div>
+                                {isSalvageOverride && (
+                                    <div className="space-y-2.5 max-w-[200px] mt-2">
+                                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Custom Salvage %</Label>
+                                        <div className="relative">
+                                            <Input 
+                                                name="salvagePercentage" 
+                                                type="number" 
+                                                min="0"
+                                                max="100"
+                                                step="0.01"
+                                                value={salvagePercentage} 
+                                                onChange={(e) => setSalvagePercentage(Number(e.target.value))}
+                                                className="h-10 w-full font-mono pr-7" 
+                                            />
+                                            <span className="absolute right-3 top-2.5 text-muted-foreground font-semibold">%</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                                 </div>
                             </CollapsibleContent>

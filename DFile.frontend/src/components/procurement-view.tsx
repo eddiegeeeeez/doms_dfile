@@ -9,6 +9,7 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { TablePagination, paginateData } from "@/components/ui/table-pagination";
+import { DataTableCard } from "@/components/ui/data-table-card";
 import { CurrencyCell } from "@/components/ui/currency-cell";
 import { StatusText } from "@/components/ui/status-text";
 import { Button } from "@/components/ui/button";
@@ -231,7 +232,17 @@ export function ProcurementView({ onNewOrder, onOrderClick }: ProcurementViewPro
                     <p>{showArchived ? "No archived orders" : "No purchase orders match your filters"}</p>
                 </div>
             ) : (
-                <div className="rounded-md border overflow-auto">
+                <DataTableCard
+                    footer={
+                        <TablePagination
+                            totalItems={filteredOrders.length}
+                            pageSize={pageSize}
+                            pageIndex={pageIndex}
+                            onPageChange={setPageIndex}
+                            onPageSizeChange={setPageSize}
+                        />
+                    }
+                >
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -303,14 +314,7 @@ export function ProcurementView({ onNewOrder, onOrderClick }: ProcurementViewPro
                             ))}
                         </TableBody>
                     </Table>
-                    <TablePagination
-                        totalItems={filteredOrders.length}
-                        pageSize={pageSize}
-                        pageIndex={pageIndex}
-                        onPageChange={setPageIndex}
-                        onPageSizeChange={setPageSize}
-                    />
-                </div>
+                </DataTableCard>
             )}
 
             <ConfirmDialog

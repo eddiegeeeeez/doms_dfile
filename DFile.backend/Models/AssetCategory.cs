@@ -20,6 +20,8 @@ namespace DFile.backend.Models
 
         public HandlingType HandlingType { get; set; } = HandlingType.Fixed;
 
+        public decimal SalvagePercentage { get; set; } = 10m;
+
         public bool IsArchived { get; set; } = false;
 
         public int? TenantId { get; set; }

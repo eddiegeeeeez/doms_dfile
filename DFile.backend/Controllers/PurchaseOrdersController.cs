@@ -262,6 +262,8 @@ namespace DFile.backend.Controllers
                 UsefulLifeYears = order.UsefulLifeYears,
                 PurchasePrice = order.PurchasePrice,
                 ResidualValue = null,
+                SalvagePercentage = category.SalvagePercentage,
+                SalvageValue = Math.Round(order.PurchasePrice * category.SalvagePercentage / 100m, 2),
                 CurrentBookValue = order.PurchasePrice,
                 MonthlyDepreciation = order.UsefulLifeYears > 0
                     ? Math.Round(order.PurchasePrice / (order.UsefulLifeYears * 12), 2)

@@ -63,6 +63,8 @@ namespace DFile.backend.Mapping
                 UsefulLifeYears = a.UsefulLifeYears,
                 PurchasePrice = a.PurchasePrice,
                 ResidualValue = a.ResidualValue,
+                SalvagePercentage = a.SalvagePercentage,
+                SalvageValue = a.SalvageValue,
                 CurrentBookValue = a.CurrentBookValue,
                 MonthlyDepreciation = a.MonthlyDepreciation,
                 TenantId = a.TenantId,

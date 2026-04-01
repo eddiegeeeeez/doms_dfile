@@ -50,6 +50,17 @@ namespace DFile.backend.Controllers
             return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
         }
 
+        /// <summary>Straight-line monthly amount: (purchase price − floor) / months, floor = max(salvage value, residual) capped at cost.</summary>
+        private static decimal ComputeMonthlyDepreciationStraightLine(decimal purchasePrice, int usefulLifeYears, decimal salvageValue, decimal? residualValue)
+        {
+            if (usefulLifeYears <= 0) return 0m;
+            var floor = Math.Max(salvageValue, residualValue ?? 0m);
+            if (floor > purchasePrice) floor = purchasePrice;
+            var depreciable = Math.Max(0m, purchasePrice - floor);
+            var months = usefulLifeYears * 12;
+            return months > 0 ? Math.Round(depreciable / months, 2) : 0m;
+        }
+
         [HttpGet]
         [RequirePermission("Assets", "CanView")]
         public async Task<ActionResult> GetAssets(
@@ -267,6 +278,12 @@ namespace DFile.backend.Controllers
 
             var generatedTag = await RecordCodeGenerator.GenerateTagNumberAsync(_context);
 
+            // Calculate salvage percentage and value
+            var effectiveSalvagePct = dto.IsSalvageOverride && dto.SalvagePercentage.HasValue
+                ? dto.SalvagePercentage.Value
+                : category.SalvagePercentage;
+            var computedSalvageValue = Math.Round(dto.AcquisitionCost * effectiveSalvagePct / 100m, 2);
+
             var asset = new Asset
             {
                 Id = Guid.NewGuid().ToString(),
@@ -288,10 +305,12 @@ namespace DFile.backend.Controllers
                 UsefulLifeYears = dto.UsefulLifeYears,
                 PurchasePrice = dto.PurchasePrice,
                 ResidualValue = dto.ResidualValue,
+                SalvagePercentage = effectiveSalvagePct,
+                SalvageValue = computedSalvageValue,
+                IsSalvageOverride = dto.IsSalvageOverride,
                 CurrentBookValue = dto.PurchasePrice,
-                MonthlyDepreciation = dto.UsefulLifeYears > 0
-                    ? Math.Round(dto.PurchasePrice / (dto.UsefulLifeYears * 12), 2)
-                    : 0,
+                MonthlyDepreciation = ComputeMonthlyDepreciationStraightLine(
+                    dto.PurchasePrice, dto.UsefulLifeYears, computedSalvageValue, dto.ResidualValue),
                 DepreciationMonthsApplied = 0,
                 TenantId = effectiveTenantId.HasValue ? effectiveTenantId.Value : null,
                 WarrantyExpiry = dto.WarrantyExpiry,
@@ -401,9 +420,17 @@ namespace DFile.backend.Controllers
                 existing.ResidualValue = dto.ResidualValue;
                 existing.CurrentBookValue = dto.CurrentBookValue;
 
-                existing.MonthlyDepreciation = dto.UsefulLifeYears > 0
-                    ? Math.Round(dto.PurchasePrice / (dto.UsefulLifeYears * 12), 2)
-                    : 0;
+                // Calculate salvage percentage and value
+                var effectiveSalvagePct = dto.IsSalvageOverride && dto.SalvagePercentage.HasValue
+                    ? dto.SalvagePercentage.Value
+                    : category.SalvagePercentage;
+                existing.SalvagePercentage = effectiveSalvagePct;
+                var computedSalvagePut = Math.Round(dto.AcquisitionCost * effectiveSalvagePct / 100m, 2);
+                existing.SalvageValue = computedSalvagePut;
+                existing.IsSalvageOverride = dto.IsSalvageOverride;
+
+                existing.MonthlyDepreciation = ComputeMonthlyDepreciationStraightLine(
+                    dto.PurchasePrice, dto.UsefulLifeYears, computedSalvagePut, dto.ResidualValue);
             }
 
             _auditService.Add(HttpContext, new AuditLog
@@ -450,9 +477,12 @@ namespace DFile.backend.Controllers
             existing.UsefulLifeYears = dto.UsefulLifeYears;
             existing.ResidualValue = dto.ResidualValue;
 
-            existing.MonthlyDepreciation = dto.UsefulLifeYears > 0
-                ? Math.Round(dto.PurchasePrice / (dto.UsefulLifeYears * 12), 2)
-                : 0;
+            var category = await _context.AssetCategories.FindAsync(existing.CategoryId);
+            var salvagePct = existing.SalvagePercentage ?? category?.SalvagePercentage ?? 0m;
+            var computedSalvage = Math.Round(dto.AcquisitionCost * salvagePct / 100m, 2);
+            existing.SalvageValue = computedSalvage;
+            existing.MonthlyDepreciation = ComputeMonthlyDepreciationStraightLine(
+                dto.PurchasePrice, dto.UsefulLifeYears, computedSalvage, dto.ResidualValue);
 
             if (dto.CurrentBookValue.HasValue)
                 existing.CurrentBookValue = dto.CurrentBookValue.Value;

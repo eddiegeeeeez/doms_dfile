@@ -41,5 +41,23 @@ namespace DFile.backend.Services
             });
             return Task.CompletedTask;
         }
+
+        public Task NotifyMaintenanceDueAsync(MaintenanceRecord record, CancellationToken cancellationToken = default)
+        {
+            var assetLabel = record.Asset != null
+                ? $"{record.Asset.AssetName} ({record.Asset.AssetCode})"
+                : record.AssetId;
+            _context.Notifications.Add(new Notification
+            {
+                Message = $"Maintenance due today: {record.Description} — {assetLabel}.",
+                Type = "Info",
+                Module = "Maintenance",
+                EntityType = "MaintenanceRecord",
+                EntityId = record.Id,
+                TargetRole = "Maintenance",
+                TenantId = record.TenantId ?? record.Asset?.TenantId,
+            });
+            return Task.CompletedTask;
+        }
     }
 }

@@ -41,6 +41,8 @@ namespace DFile.backend.Data
         // Asset Condition History
         public DbSet<AssetConditionLog> AssetConditionLogs { get; set; }
 
+        public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -53,6 +55,8 @@ namespace DFile.backend.Data
                 e.Property(a => a.CurrentBookValue).HasColumnType("decimal(18,2)");
                 e.Property(a => a.MonthlyDepreciation).HasColumnType("decimal(18,2)");
                 e.Property(a => a.ResidualValue).HasColumnType("decimal(18,2)");
+                e.Property(a => a.SalvagePercentage).HasColumnType("decimal(5,2)");
+                e.Property(a => a.SalvageValue).HasColumnType("decimal(18,2)");
                 e.Property(a => a.SerialNumber).HasMaxLength(450);
 
                 e.Property(a => a.LifecycleStatus)
@@ -121,6 +125,9 @@ namespace DFile.backend.Data
                 e.Property(c => c.HandlingType)
                     .HasConversion<int>()
                     .HasDefaultValue(HandlingType.Fixed);
+                    
+                e.Property(c => c.SalvagePercentage)
+                    .HasColumnType("decimal(5,2)");
 
                 e.HasIndex(c => c.AssetCategoryCode)
                     .IsUnique()
@@ -534,6 +541,24 @@ namespace DFile.backend.Data
                     .HasForeignKey(a => a.TenantId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
+            // ── PaymentTransaction ─────────────────────────────────
+            modelBuilder.Entity<PaymentTransaction>(e =>
+            {
+                e.Property(p => p.AmountCents);
+                e.Property(p => p.SubscriptionPlanCode).HasMaxLength(32);
+                e.HasIndex(p => p.ReferenceNumber)
+                    .IsUnique()
+                    .HasDatabaseName("IX_PaymentTransactions_ReferenceNumber");
+                e.HasIndex(p => p.CheckoutSessionId)
+                    .HasDatabaseName("IX_PaymentTransactions_CheckoutSessionId");
+                e.HasIndex(p => new { p.TenantId, p.Status })
+                    .HasDatabaseName("IX_PaymentTransactions_Tenant_Status");
+                e.HasOne(p => p.Tenant)
+                    .WithMany()
+                    .HasForeignKey(p => p.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
             // ── AssetConditionLog ─────────────────────────────────
             modelBuilder.Entity<AssetConditionLog>(e =>
             {

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination, paginateData } from "@/components/ui/table-pagination";
+import { DataTableCard } from "@/components/ui/data-table-card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tag, Plus, Search, Archive, RotateCcw, Filter } from "lucide-react";
@@ -38,7 +39,7 @@ export default function AssetCategoriesPage() {
     const [handlingTypeFilter, setHandlingTypeFilter] = useState("All");
     const [archiveTarget, setArchiveTarget] = useState<string | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [form, setForm] = useState({ categoryName: "", description: "", handlingType: 0 });
+    const [form, setForm] = useState({ categoryName: "", description: "", handlingType: 0, salvagePercentage: 10 });
     const [pageIndex, setPageIndex] = useState(0);
     const [pageSize, setPageSize] = useState(10);
 
@@ -59,7 +60,7 @@ export default function AssetCategoriesPage() {
     }, [categories, searchQuery, handlingTypeFilter]);
 
     const openCreate = () => {
-        setForm({ categoryName: "", description: "", handlingType: 0 });
+        setForm({ categoryName: "", description: "", handlingType: 0, salvagePercentage: 10 });
         setIsFormOpen(true);
     };
 
@@ -136,12 +137,22 @@ export default function AssetCategoriesPage() {
             {isLoading ? (
                 <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
             ) : filtered.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground rounded-md border min-h-[520px] flex flex-col items-center justify-center">
+                <div className="text-center py-12 text-muted-foreground rounded-md border min-h-[12rem] flex flex-col items-center justify-center">
                     <Tag className="h-12 w-12 mx-auto mb-4 opacity-20" />
                     <p>{showArchived ? "No archived categories" : "No categories found"}</p>
                 </div>
             ) : (
-                <div className="rounded-md border overflow-auto min-h-[520px]">
+                <DataTableCard
+                    footer={
+                        <TablePagination
+                            totalItems={filtered.length}
+                            pageSize={pageSize}
+                            pageIndex={pageIndex}
+                            onPageChange={setPageIndex}
+                            onPageSizeChange={setPageSize}
+                        />
+                    }
+                >
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -182,14 +193,7 @@ export default function AssetCategoriesPage() {
                             ))}
                         </TableBody>
                     </Table>
-                    <TablePagination
-                        totalItems={filtered.length}
-                        pageSize={pageSize}
-                        pageIndex={pageIndex}
-                        onPageChange={setPageIndex}
-                        onPageSizeChange={setPageSize}
-                    />
-                </div>
+                </DataTableCard>
             )}
 
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -217,6 +221,10 @@ export default function AssetCategoriesPage() {
                                     <SelectItem value="2">Movable</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Salvage Percentage (%)</Label>
+                            <Input type="number" min="0" max="100" step="0.01" value={form.salvagePercentage} onChange={(e) => setForm(f => ({ ...f, salvagePercentage: Number(e.target.value) }))} placeholder="e.g. 10" />
                         </div>
                     </div>
                     <DialogFooter>

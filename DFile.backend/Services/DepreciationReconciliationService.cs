@@ -87,7 +87,8 @@ namespace DFile.backend.Services
                 if (delta <= 0)
                     continue;
 
-                var floor = asset.ResidualValue ?? 0m;
+                // Use SalvageValue if available, otherwise fall back to ResidualValue, then 0
+                var floor = asset.SalvageValue ?? asset.ResidualValue ?? 0m;
                 for (var i = 0; i < delta; i++)
                 {
                     if (asset.CurrentBookValue <= floor)

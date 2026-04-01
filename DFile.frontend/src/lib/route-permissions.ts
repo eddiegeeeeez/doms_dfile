@@ -1,6 +1,7 @@
 const ROUTE_MODULE_MAP: Record<string, string[]> = {
     "/tenant/dashboard": [],
     "/tenant/organization": ["Departments", "Employees"],
+    "/tenant/billing": [],
     "/tenant/inventory": ["Assets"],
     "/tenant/allocation": ["Assets"],
     "/tenant/locations": ["Rooms"],

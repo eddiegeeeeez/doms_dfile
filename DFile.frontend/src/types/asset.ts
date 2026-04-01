@@ -29,6 +29,9 @@ export interface Asset {
     purchasePrice?: number;
     currentBookValue?: number;
     monthlyDepreciation?: number;
+    salvagePercentage?: number;
+    salvageValue?: number;
+    isSalvageOverride?: boolean;
     tenantId?: number;
     permissions?: ModulePermission[];
     archived?: boolean;
@@ -53,6 +56,8 @@ export interface CreateAssetPayload {
     value?: number;
     usefulLifeYears?: number;
     purchasePrice?: number;
+    salvagePercentage?: number;
+    isSalvageOverride?: boolean;
     warrantyExpiry?: string;
     notes?: string;
     documents?: string;
@@ -61,6 +66,9 @@ export interface CreateAssetPayload {
 export interface UpdateAssetPayload extends CreateAssetPayload {
     currentBookValue?: number;
     monthlyDepreciation?: number;
+    salvagePercentage?: number;
+    salvageValue?: number;
+    isSalvageOverride?: boolean;
 }
 
 export interface UpdateAssetFinancialPayload {
@@ -94,6 +102,7 @@ export interface Category {
     handlingType: number;
     items: number;
     status: "Active" | "Archived";
+    salvagePercentage?: number;
     tenantId?: number;
     assetCount?: number;
     updatedAt?: string;
@@ -106,6 +115,7 @@ export interface CreateCategoryPayload {
     categoryName: string;
     handlingType: number;
     description: string;
+    salvagePercentage?: number;
 }
 
 export interface Room {
@@ -140,6 +150,7 @@ export interface MaintenanceRecord {
     frequency?: "One-time" | "Daily" | "Weekly" | "Monthly" | "Yearly";
     startDate?: string;
     endDate?: string;
+    nextDueDate?: string;
     cost?: number;
     attachments?: string;
     diagnosisOutcome?: "Repairable" | "Not Repairable" | null;

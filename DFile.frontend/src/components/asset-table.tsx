@@ -21,6 +21,7 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { DataTableCard } from "@/components/ui/data-table-card";
 import { CurrencyCell } from "@/components/ui/currency-cell";
 import { Asset } from "@/types/asset";
 import { useAssetsPaged, useArchiveAsset, useRestoreAsset } from "@/hooks/use-assets";
@@ -260,127 +261,126 @@ export function AssetTable({ onAssetClick, readOnly = false }: AssetTableProps) 
                 asset={selectedAssetForQR}
             />
 
-            <div className="rounded-md border overflow-hidden">
-                {/* Toolbar */}
-                <div className="p-6 flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
-                    <div className="flex flex-1 flex-wrap gap-3 w-full lg:w-auto items-center">
-                        <div className="relative flex-1 min-w-[200px] max-w-sm">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                            <Input
-                                placeholder="Search assets..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 h-10"
-                                aria-label="Search assets"
-                            />
+            <DataTableCard
+                toolbar={
+                    <div className="p-6 flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
+                        <div className="flex flex-1 flex-wrap gap-3 w-full lg:w-auto items-center">
+                            <div className="relative flex-1 min-w-[200px] max-w-sm">
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                <Input
+                                    placeholder="Search assets..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-10 h-10"
+                                    aria-label="Search assets"
+                                />
+                            </div>
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="w-[150px] h-10">
+                                    <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="All">All Status</SelectItem>
+                                    {Object.keys(statusVariant).map((s) => (
+                                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                                <SelectTrigger className="w-[150px] h-10">
+                                    <Package className="w-4 h-4 mr-2 text-muted-foreground" />
+                                    <SelectValue placeholder="Category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="All">All Categories</SelectItem>
+                                    {uniqueCategories.map((cat) => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-[150px] h-10">
-                                <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
-                                <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="All">All Status</SelectItem>
-                                {Object.keys(statusVariant).map((s) => (
-                                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                            <SelectTrigger className="w-[150px] h-10">
-                                <Package className="w-4 h-4 mr-2 text-muted-foreground" />
-                                <SelectValue placeholder="Category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="All">All Categories</SelectItem>
-                                {uniqueCategories.map((cat) => (
-                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="flex items-center gap-2 w-full lg:w-auto justify-end flex-wrap">
-                        <Button variant="outline" size="sm" className="h-10" onClick={handleExportCSV}>
-                            <FileBarChart size={16} className="mr-2" />
-                            Export
-                        </Button>
-                        {!readOnly && (
-                            <Button
-                                variant={showArchived ? "default" : "outline"}
-                                size="sm"
-                                className="h-10"
-                                onClick={() => setShowArchived(!showArchived)}
-                            >
-                                {showArchived ? (
-                                    <>
-                                        <RotateCcw size={16} className="mr-2" />
-                                        View active
-                                    </>
-                                ) : (
-                                    <>
-                                        <Archive size={16} className="mr-2" />
-                                        View archived
-                                    </>
-                                )}
+                        <div className="flex items-center gap-2 w-full lg:w-auto justify-end flex-wrap">
+                            <Button variant="outline" size="sm" className="h-10" onClick={handleExportCSV}>
+                                <FileBarChart size={16} className="mr-2" />
+                                Export
                             </Button>
-                        )}
+                            {!readOnly && (
+                                <Button
+                                    variant={showArchived ? "default" : "outline"}
+                                    size="sm"
+                                    className="h-10"
+                                    onClick={() => setShowArchived(!showArchived)}
+                                >
+                                    {showArchived ? (
+                                        <>
+                                            <RotateCcw size={16} className="mr-2" />
+                                            View active
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Archive size={16} className="mr-2" />
+                                            View archived
+                                        </>
+                                    )}
+                                </Button>
+                            )}
+                        </div>
                     </div>
-                </div>
-
-                {/* Table */}
-                <div className="overflow-x-auto">
-                    <Table className="w-full">
-                        <TableHeader>
-                            {table.getHeaderGroups().map((headerGroup) => (
-                                <TableRow key={headerGroup.id} className="hover:bg-transparent border-y border-border/40">
-                                    {headerGroup.headers.map((header) => (
-                                        <TableHead key={header.id}>
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(header.column.columnDef.header, header.getContext())}
-                                        </TableHead>
+                }
+                footer={
+                    <TablePagination
+                        totalItems={totalCount}
+                        pageSize={paged?.pageSize ?? pageSize}
+                        pageIndex={pageIndex}
+                        onPageChange={setPageIndex}
+                        onPageSizeChange={setPageSize}
+                        pageSizeOptions={[5, 10, 20, 50]}
+                    />
+                }
+            >
+                <Table className="w-full min-w-[640px]">
+                    <TableHeader>
+                        {table.getHeaderGroups().map((headerGroup) => (
+                            <TableRow key={headerGroup.id} className="hover:bg-transparent border-y border-border/40">
+                                {headerGroup.headers.map((header) => (
+                                    <TableHead key={header.id}>
+                                        {header.isPlaceholder
+                                            ? null
+                                            : flexRender(header.column.columnDef.header, header.getContext())}
+                                    </TableHead>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableHeader>
+                    <TableBody>
+                        {table.getRowModel().rows?.length ? (
+                            table.getRowModel().rows.map((row) => (
+                                <TableRow
+                                    key={row.id}
+                                    className="cursor-pointer"
+                                    onClick={() => onAssetClick?.(row.original)}
+                                >
+                                    {row.getVisibleCells().map((cell) => (
+                                        <TableCell key={cell.id}>
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </TableCell>
                                     ))}
                                 </TableRow>
-                            ))}
-                        </TableHeader>
-                        <TableBody>
-                            {table.getRowModel().rows?.length ? (
-                                table.getRowModel().rows.map((row) => (
-                                    <TableRow
-                                        key={row.id}
-                                        className="cursor-pointer"
-                                        onClick={() => onAssetClick?.(row.original)}
-                                    >
-                                        {row.getVisibleCells().map((cell) => (
-                                            <TableCell key={cell.id}>
-                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow className="hover:bg-transparent">
-                                    <TableCell
-                                        colSpan={columns.length}
-                                        className="h-32 text-center text-muted-foreground"
-                                    >
-                                        {showArchived ? "No archived assets yet" : "No assets match your search"}
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-
-                <TablePagination
-                    totalItems={totalCount}
-                    pageSize={paged?.pageSize ?? pageSize}
-                    pageIndex={pageIndex}
-                    onPageChange={setPageIndex}
-                    onPageSizeChange={setPageSize}
-                    pageSizeOptions={[5, 10, 20, 50]}
-                />
-            </div>
+                            ))
+                        ) : (
+                            <TableRow className="hover:bg-transparent">
+                                <TableCell
+                                    colSpan={columns.length}
+                                    className="h-32 text-center text-muted-foreground"
+                                >
+                                    {showArchived ? "No archived assets yet" : "No assets match your search"}
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </DataTableCard>
 
             <ConfirmDialog
                 open={archiveTarget !== null}

@@ -23,6 +23,7 @@ export function EditCategoryModal({ open, onOpenChange, category, onSuccess }: E
         categoryName: "",
         description: "",
         handlingType: 0,
+        salvagePercentage: 10,
     });
     const [hasLinkedAssets, setHasLinkedAssets] = useState(false);
 
@@ -32,6 +33,7 @@ export function EditCategoryModal({ open, onOpenChange, category, onSuccess }: E
                 categoryName: category.categoryName,
                 description: category.description || "",
                 handlingType: category.handlingType,
+                salvagePercentage: category.salvagePercentage ?? 10,
             });
             setHasLinkedAssets((category.items ?? 0) > 0);
         }
@@ -45,6 +47,7 @@ export function EditCategoryModal({ open, onOpenChange, category, onSuccess }: E
             categoryName: form.categoryName.trim(),
             description: form.description.trim(),
             handlingType: form.handlingType,
+            salvagePercentage: form.salvagePercentage,
             rowVersion: (category as any).rowVersion,
         };
 
@@ -118,6 +121,20 @@ export function EditCategoryModal({ open, onOpenChange, category, onSuccess }: E
                                 Cannot change handling type while assets are linked to this category.
                             </p>
                         )}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="salvagePercentage">Salvage Percentage (%)</Label>
+                        <Input
+                            id="salvagePercentage"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={form.salvagePercentage}
+                            onChange={(e) => setForm(f => ({ ...f, salvagePercentage: Number(e.target.value) }))}
+                            placeholder="e.g. 10"
+                        />
                     </div>
                 </div>
 

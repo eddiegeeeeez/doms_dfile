@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Asset, MaintenanceRecord } from "@/types/asset";
 import { useAssets } from "@/hooks/use-assets";
 import { useMaintenanceRecords, useAddMaintenanceRecord, useUpdateMaintenanceRecord } from "@/hooks/use-maintenance";
+import { toast } from "sonner";
 
 interface CreateMaintenanceModalProps {
     open: boolean;
@@ -69,6 +70,13 @@ export function CreateMaintenanceModal({ open, onOpenChange, initialData, defaul
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const recurring = ["Daily", "Weekly", "Monthly", "Yearly"];
+        const freq = formData.frequency as string | undefined;
+        if (freq && recurring.includes(freq) && !formData.startDate?.trim()) {
+            toast.error("Start date is required for recurring schedules (Daily, Weekly, Monthly, Yearly).");
+            return;
+        }
 
         if (initialData) {
             await updateRecordMutation.mutateAsync({

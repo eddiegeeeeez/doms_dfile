@@ -50,7 +50,8 @@ namespace DFile.backend.Controllers
                 .Where(aa => assetIds.Contains(aa.AssetId) && aa.Status == "Active")
                 .ToDictionaryAsync(aa => aa.AssetId);
 
-            var result = records.Select(r => MapToDto(r, activeAllocations)).ToList();
+            var utcNow = DateTime.UtcNow;
+            var result = records.Select(r => MapToDto(r, activeAllocations, utcNow)).ToList();
             return Ok(result);
         }
 
@@ -113,7 +114,7 @@ namespace DFile.backend.Controllers
                 .FirstOrDefaultAsync(r => r.Id == idStr);
 
             if (record == null) return NotFound();
-            if (!IsSuperAdmin() && tenantId.HasValue && record.TenantId != tenantId) return NotFound();
+            if (!IsMaintenanceVisibleToTenant(record, tenantId)) return NotFound();
 
             var activeAllocation = await _context.AssetAllocations
                 .Include(aa => aa.Room)
@@ -122,7 +123,7 @@ namespace DFile.backend.Controllers
             var allocDict = new Dictionary<string, AssetAllocation>();
             if (activeAllocation != null) allocDict[record.AssetId] = activeAllocation;
 
-            return Ok(MapToDto(record, allocDict));
+            return Ok(MapToDto(record, allocDict, DateTime.UtcNow));
         }
 
         // ── Status transition rules ──────────────────────────────
@@ -162,6 +163,10 @@ namespace DFile.backend.Controllers
             if (asset.IsArchived)
                 return BadRequest(new { message = "Cannot create maintenance records for archived assets." });
 
+            var scheduleErr = MaintenanceSchedulingService.ValidateSchedule(dto.Frequency, dto.StartDate, dto.EndDate);
+            if (scheduleErr != null)
+                return BadRequest(new { message = scheduleErr });
+
             var record = new MaintenanceRecord
             {
                 Id = Guid.NewGuid().ToString(),
@@ -198,7 +203,7 @@ namespace DFile.backend.Controllers
             var allocDict = new Dictionary<string, AssetAllocation>();
             if (activeAllocation != null) allocDict[dto.AssetId] = activeAllocation;
 
-            return CreatedAtAction("GetMaintenanceRecord", new { id = record.Id }, MapToDto(record, allocDict));
+            return CreatedAtAction("GetMaintenanceRecord", new { id = record.Id }, MapToDto(record, allocDict, DateTime.UtcNow));
         }
 
         [HttpPut("{id}")]
@@ -206,10 +211,12 @@ namespace DFile.backend.Controllers
         public async Task<IActionResult> PutMaintenanceRecord(string id, UpdateMaintenanceRecordDto dto)
         {
             var tenantId = GetCurrentTenantId();
-            var existing = await _context.MaintenanceRecords.FindAsync(id);
+            var existing = await _context.MaintenanceRecords
+                .Include(r => r.Asset)
+                .FirstOrDefaultAsync(r => r.Id == id);
 
             if (existing == null) return NotFound();
-            if (!IsSuperAdmin() && tenantId.HasValue && existing.TenantId != tenantId) return NotFound();
+            if (!IsMaintenanceVisibleToTenant(existing, tenantId)) return NotFound();
 
             // Validate status transition
             if (!IsValidTransition(existing.Status, dto.Status))
@@ -220,6 +227,10 @@ namespace DFile.backend.Controllers
             if (asset == null) return BadRequest(new { message = "Asset not found." });
             if (!IsSuperAdmin() && tenantId.HasValue && asset.TenantId != tenantId)
                 return BadRequest(new { message = "Asset does not belong to your organization." });
+
+            var scheduleErr = MaintenanceSchedulingService.ValidateSchedule(dto.Frequency, dto.StartDate, dto.EndDate);
+            if (scheduleErr != null)
+                return BadRequest(new { message = scheduleErr });
 
             existing.AssetId = dto.AssetId;
             existing.Description = dto.Description;
@@ -245,10 +256,12 @@ namespace DFile.backend.Controllers
         public async Task<IActionResult> ArchiveMaintenanceRecord(string id)
         {
             var tenantId = GetCurrentTenantId();
-            var record = await _context.MaintenanceRecords.FindAsync(id);
+            var record = await _context.MaintenanceRecords
+                .Include(r => r.Asset)
+                .FirstOrDefaultAsync(r => r.Id == id);
 
             if (record == null) return NotFound();
-            if (!IsSuperAdmin() && tenantId.HasValue && record.TenantId != tenantId) return NotFound();
+            if (!IsMaintenanceVisibleToTenant(record, tenantId)) return NotFound();
 
             record.IsArchived = true;
             record.UpdatedAt = DateTime.UtcNow;
@@ -261,10 +274,12 @@ namespace DFile.backend.Controllers
         public async Task<IActionResult> RestoreMaintenanceRecord(string id)
         {
             var tenantId = GetCurrentTenantId();
-            var record = await _context.MaintenanceRecords.FindAsync(id);
+            var record = await _context.MaintenanceRecords
+                .Include(r => r.Asset)
+                .FirstOrDefaultAsync(r => r.Id == id);
 
             if (record == null) return NotFound();
-            if (!IsSuperAdmin() && tenantId.HasValue && record.TenantId != tenantId) return NotFound();
+            if (!IsMaintenanceVisibleToTenant(record, tenantId)) return NotFound();
 
             record.IsArchived = false;
             record.UpdatedAt = DateTime.UtcNow;
@@ -277,10 +292,12 @@ namespace DFile.backend.Controllers
         public async Task<IActionResult> DeleteMaintenanceRecord(string id)
         {
             var tenantId = GetCurrentTenantId();
-            var record = await _context.MaintenanceRecords.FindAsync(id);
+            var record = await _context.MaintenanceRecords
+                .Include(r => r.Asset)
+                .FirstOrDefaultAsync(r => r.Id == id);
 
             if (record == null) return NotFound();
-            if (!IsSuperAdmin() && tenantId.HasValue && record.TenantId != tenantId) return NotFound();
+            if (!IsMaintenanceVisibleToTenant(record, tenantId)) return NotFound();
 
             _context.MaintenanceRecords.Remove(record);
             await _context.SaveChangesAsync();
@@ -326,7 +343,7 @@ namespace DFile.backend.Controllers
                 .FirstOrDefaultAsync(r => r.Id == maintenanceId);
 
             if (record == null) return NotFound();
-            if (!IsSuperAdmin() && tenantId.HasValue && record.TenantId != tenantId) return NotFound();
+            if (!IsMaintenanceVisibleToTenant(record, tenantId)) return NotFound();
 
             var asset = record.Asset;
             if (asset == null) return BadRequest(new { message = "Associated asset not found." });
@@ -388,7 +405,15 @@ namespace DFile.backend.Controllers
 
         // ── Helpers ───────────────────────────────────────────────
 
-        private static MaintenanceRecordResponseDto MapToDto(MaintenanceRecord r, Dictionary<string, AssetAllocation> activeAllocations)
+        private bool IsMaintenanceVisibleToTenant(MaintenanceRecord r, int? tenantId)
+        {
+            if (IsSuperAdmin()) return true;
+            if (!tenantId.HasValue) return false;
+            if (r.TenantId == tenantId) return true;
+            return r.TenantId == null && r.Asset != null && r.Asset.TenantId == tenantId;
+        }
+
+        private static MaintenanceRecordResponseDto MapToDto(MaintenanceRecord r, Dictionary<string, AssetAllocation> activeAllocations, DateTime utcNow)
         {
             activeAllocations.TryGetValue(r.AssetId, out var alloc);
 
@@ -410,6 +435,7 @@ namespace DFile.backend.Controllers
                 Frequency = r.Frequency,
                 StartDate = r.StartDate,
                 EndDate = r.EndDate,
+                NextDueDate = MaintenanceSchedulingService.ComputeNextDueDate(r, utcNow),
                 Cost = r.Cost,
                 Attachments = r.Attachments,
                 DiagnosisOutcome = r.DiagnosisOutcome,

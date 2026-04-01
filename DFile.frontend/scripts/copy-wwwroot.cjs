@@ -15,8 +15,15 @@ if (!fs.existsSync(outDir)) {
 }
 
 fs.mkdirSync(path.dirname(destDir), { recursive: true });
-fs.rmSync(destDir, { recursive: true, force: true, maxRetries: 8, retryDelay: 250 });
-fs.cpSync(outDir, destDir, { recursive: true });
+try {
+  fs.rmSync(destDir, { recursive: true, force: true, maxRetries: 8, retryDelay: 250 });
+} catch (e) {
+  console.warn(
+    "[copy-wwwroot] Could not remove wwwroot (often: API is running and has files open). Merging export on top — stop dotnet run for a clean replace."
+  );
+  console.warn(String(e && e.message ? e.message : e));
+}
+fs.cpSync(outDir, destDir, { recursive: true, force: true });
 
 // Match old robocopy /XD dev — drop dev-only export if present
 const devDir = path.join(destDir, "dev");

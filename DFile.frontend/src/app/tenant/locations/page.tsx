@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TablePagination, paginateData } from "@/components/ui/table-pagination";
+import { DataTableCard } from "@/components/ui/data-table-card";
 import { RoomListView } from "@/components/room-list-view";
 import { RoomModal } from "@/components/modals/create-room-modal";
 import { toast } from "sonner";
@@ -353,13 +354,23 @@ export default function LocationsPage() {
                     {catsLoading ? (
                         <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
                     ) : categorySubCategoryRows.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground rounded-md border min-h-[520px] flex flex-col items-center justify-center">
+                        <div className="text-center py-12 text-muted-foreground rounded-md border min-h-[12rem] flex flex-col items-center justify-center">
                             <Layers className="h-12 w-12 mx-auto mb-4 opacity-20" />
                             <p>{catShowArchived ? "No archived room categories" : "No room categories found"}</p>
                             {!catShowArchived && <p className="text-xs mt-1">Define a category to get started</p>}
                         </div>
                     ) : (
-                        <div className="rounded-md border overflow-auto min-h-[520px]">
+                        <DataTableCard
+                            footer={
+                                <TablePagination
+                                    totalItems={categorySubCategoryRows.length}
+                                    pageSize={catPageSize}
+                                    pageIndex={catPageIndex}
+                                    onPageChange={setCatPageIndex}
+                                    onPageSizeChange={setCatPageSize}
+                                />
+                            }
+                        >
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -394,14 +405,7 @@ export default function LocationsPage() {
                                     ))}
                                 </TableBody>
                             </Table>
-                            <TablePagination
-                                totalItems={categorySubCategoryRows.length}
-                                pageSize={catPageSize}
-                                pageIndex={catPageIndex}
-                                onPageChange={setCatPageIndex}
-                                onPageSizeChange={setCatPageSize}
-                            />
-                        </div>
+                        </DataTableCard>
                     )}
                 </TabsContent>
 

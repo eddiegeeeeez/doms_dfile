@@ -4,16 +4,19 @@ using DFile.backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace dfile.backend.Migrations
+namespace DFile.backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260331074206_ApplyPrecisionToSalvage")]
+    partial class ApplyPrecisionToSalvage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -661,84 +664,6 @@ namespace dfile.backend.Migrations
                         .HasDatabaseName("IX_Notifications_Tenant_Read_Created");
 
                     b.ToTable("Notifications");
-                });
-
-            modelBuilder.Entity("DFile.backend.Models.PaymentTransaction", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<int>("AmountCents")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CheckoutSessionId")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("LastError")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("LastEventType")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("PaymentIntentId")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("Provider")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.Property<string>("ReferenceNumber")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.Property<string>("SubscriptionPlanCode")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CheckoutSessionId")
-                        .HasDatabaseName("IX_PaymentTransactions_CheckoutSessionId");
-
-                    b.HasIndex("ReferenceNumber")
-                        .IsUnique()
-                        .HasDatabaseName("IX_PaymentTransactions_ReferenceNumber");
-
-                    b.HasIndex("TenantId", "Status")
-                        .HasDatabaseName("IX_PaymentTransactions_Tenant_Status");
-
-                    b.ToTable("PaymentTransactions");
                 });
 
             modelBuilder.Entity("DFile.backend.Models.PurchaseOrder", b =>
@@ -1612,17 +1537,6 @@ namespace dfile.backend.Migrations
                     b.Navigation("Tenant");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("DFile.backend.Models.PaymentTransaction", b =>
-                {
-                    b.HasOne("DFile.backend.Models.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("DFile.backend.Models.PurchaseOrder", b =>

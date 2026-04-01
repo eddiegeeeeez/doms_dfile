@@ -7,6 +7,7 @@ import { StatusText } from "@/components/ui/status-text";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { DataTableCard } from "@/components/ui/data-table-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShieldCheck, Search, Activity, FileText, Users } from "lucide-react";
 import { useAuditLogs, useAuditSummary } from "@/hooks/use-audit-logs";
@@ -149,7 +150,18 @@ export default function AuditCenterPage() {
                     <p>No audit logs found</p>
                 </div>
             ) : (
-                <div className="rounded-md border overflow-auto">
+                <DataTableCard
+                    footer={
+                        <TablePagination
+                            totalItems={logsResponse?.totalCount ?? 0}
+                            pageSize={logsResponse?.pageSize ?? pageSize}
+                            pageIndex={currentPage - 1}
+                            onPageChange={(idx) => setPage(idx + 1)}
+                            onPageSizeChange={setPageSize}
+                            pageSizeOptions={[10, 25, 50, 100]}
+                        />
+                    }
+                >
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -186,15 +198,7 @@ export default function AuditCenterPage() {
                             )}
                         </TableBody>
                     </Table>
-                    <TablePagination
-                        totalItems={logsResponse?.totalCount ?? 0}
-                        pageSize={logsResponse?.pageSize ?? pageSize}
-                        pageIndex={currentPage - 1}
-                        onPageChange={(idx) => setPage(idx + 1)}
-                        onPageSizeChange={setPageSize}
-                        pageSizeOptions={[10, 25, 50, 100]}
-                    />
-                </div>
+                </DataTableCard>
             )}
         </div>
     );

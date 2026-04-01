@@ -6,5 +6,6 @@ namespace DFile.backend.Services
     {
         Task NotifyPurchaseOrderApprovedAsync(PurchaseOrder order, CancellationToken cancellationToken = default);
         Task NotifyReplacementNeededAsync(Asset asset, int? tenantId, CancellationToken cancellationToken = default);
+        Task NotifyMaintenanceDueAsync(MaintenanceRecord record, CancellationToken cancellationToken = default);
     }
 }
